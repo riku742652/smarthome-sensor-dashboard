@@ -68,6 +68,87 @@ npm run dev
 
 詳細: https://support.switch-bot.com/hc/en-us/articles/12822710195351
 
+## フロントエンド開発
+
+### セットアップ
+
+```bash
+# 1. 依存関係のインストール
+npm install
+
+# 2. 環境変数の設定
+cp .env.example .env
+# .envファイルを編集してAPI URLを設定
+# Lambda Function URLがデプロイされていない場合は、モックデータを使用:
+# VITE_USE_MOCK_DATA=true
+
+# 3. 開発サーバーの起動
+npm run dev
+# ブラウザで http://localhost:3000 を開く
+```
+
+### 開発モード（モックデータ使用）
+
+APIがまだデプロイされていない場合は、モックデータで開発できます:
+
+```bash
+# .envファイルに追加
+VITE_USE_MOCK_DATA=true
+```
+
+モックデータを有効にすると、実際のLambda APIを呼び出さずに、ランダムに生成されたセンサーデータが表示されます。
+
+### ビルド
+
+```bash
+# 本番ビルド
+npm run build
+
+# ビルド結果は dist/ フォルダに出力されます
+# S3にデプロイする場合は、dist/ の内容をアップロードしてください
+```
+
+### 品質チェック
+
+```bash
+# リント実行
+npm run lint
+npm run lint:fix  # 自動修正
+
+# 型チェック
+npm run type-check
+
+# テスト実行
+npm run test
+npm run test:coverage
+
+# すべての品質チェックを一括実行
+npm run quality-check
+```
+
+### トラブルシューティング
+
+**問題: ビルドが失敗する**
+
+```bash
+# node_modulesを削除して再インストール
+rm -rf node_modules package-lock.json
+npm install
+```
+
+**問題: 型エラーが出る**
+
+```bash
+# TypeScriptの型チェックを実行
+npm run type-check
+```
+
+**問題: APIに接続できない**
+
+1. `.env`ファイルで`VITE_API_BASE_URL`が正しく設定されているか確認
+2. Lambda Function URLがデプロイされているか確認
+3. モックデータモードで開発する: `VITE_USE_MOCK_DATA=true`
+
 ## 開発
 
 ### 利用可能なコマンド
@@ -148,13 +229,27 @@ src/
 - **Vitest** - テストフレームワーク
 - **TypeScript** - 型安全性
 
-## MVP機能（Phase 1）
+## 実装状況
 
-- [ ] Switchbot APIからセンサーデータを取得
-- [ ] 現在の温度、湿度、CO2濃度を表示
-- [ ] 過去24時間のグラフ表示
-- [ ] 1分ごとの自動更新
-- [ ] ローカルストレージでのデータキャッシング
+### Phase 1: フロントエンド React UI ✅
+
+- ✅ React + Vite + TypeScript プロジェクトセットアップ
+- ✅ TailwindCSS スタイリング設定
+- ✅ 階層化ドメインアーキテクチャ実装
+- ✅ センサーダッシュボード（最新値表示）
+- ✅ 時系列グラフ（Recharts）
+- ✅ 時間範囲選択（1h, 6h, 12h, 24h, 7d）
+- ✅ 自動更新（1分間隔）
+- ✅ モックデータサポート（開発用）
+- ✅ エラーハンドリングとローディング表示
+
+### 今後の計画
+
+- [ ] Lambda API のデプロイ
+- [ ] S3 + CloudFront へのフロントエンドデプロイ
+- [ ] Terraform/Terragrunt によるインフラ構築
+- [ ] テストの追加（カバレッジ80%以上）
+- [ ] CI/CD パイプライン構築
 
 ## 品質基準
 
@@ -177,4 +272,9 @@ MIT
 
 ## 変更履歴
 
+- 2026-03-28: フロントエンド React UI 実装完了（Phase 1）
+  - React + Vite + TypeScript + TailwindCSS セットアップ
+  - センサーダッシュボードと時系列グラフ実装
+  - モックデータサポート追加
+  - ビルド成功確認
 - 2026-03-28: プロジェクト初期化
