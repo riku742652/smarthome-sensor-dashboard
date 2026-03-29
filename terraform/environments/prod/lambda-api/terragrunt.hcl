@@ -19,9 +19,9 @@ inputs = {
   #   aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin <ACCOUNT_ID>.dkr.ecr.ap-northeast-1.amazonaws.com
   #   docker tag smarthome-sensor-api:latest <ACCOUNT_ID>.dkr.ecr.ap-northeast-1.amazonaws.com/smarthome-sensor-api:latest
   #   docker push <ACCOUNT_ID>.dkr.ecr.ap-northeast-1.amazonaws.com/smarthome-sensor-api:latest
-  image_uri     = "${get_env("AWS_ACCOUNT_ID", "123456789012")}.dkr.ecr.ap-northeast-1.amazonaws.com/smarthome-sensor-api:latest"
-  timeout       = 30
-  memory_size   = 512
+  image_uri   = "${get_env("AWS_ACCOUNT_ID", "123456789012")}.dkr.ecr.ap-northeast-1.amazonaws.com/smarthome-sensor-api:latest"
+  timeout     = 30
+  memory_size = 512
 
   dynamodb_table_arn = dependency.dynamodb.outputs.table_arn
 

@@ -8,12 +8,12 @@ data "archive_file" "lambda_zip" {
 resource "aws_lambda_function" "this" {
   filename         = var.source_dir != "" ? data.archive_file.lambda_zip[0].output_path : null
   function_name    = "${var.project_name}-${var.environment}-${var.function_name}"
-  role            = aws_iam_role.lambda_role.arn
-  handler         = var.handler
+  role             = aws_iam_role.lambda_role.arn
+  handler          = var.handler
   source_code_hash = var.source_dir != "" ? data.archive_file.lambda_zip[0].output_base64sha256 : null
-  runtime         = var.runtime
-  timeout         = var.timeout
-  memory_size     = var.memory_size
+  runtime          = var.runtime
+  timeout          = var.timeout
+  memory_size      = var.memory_size
 
   environment {
     variables = var.environment_variables
