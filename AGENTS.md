@@ -100,7 +100,23 @@ Use harness-doc-updater to update documentation
 
 **推奨**: `harness-executor` サブエージェントを使用してコンテキストを節約
 
-### 5. ドキュメント更新（harness-doc-updaterを使用）
+### 5. PRレビューと修正
+**重要**: PRを作成した後も、レビューと修正のプロセスがあります。
+
+#### 対応が必要なこと
+- **CI/CD失敗**: 型エラー、テストエラー、リントエラーを修正
+- **AIレビュアー**: GitHub Apps（Claude、Codex、Gemini等）からのフィードバックに対応
+- **人間のレビュー**: レビューコメントに基づいて修正
+
+#### プロンプト例
+```
+Github Apps に Claude, Codex, Gemini Code Assistant を追加してPRを自動レビューさせるようにしました。
+彼らと会話してPRを適切に修正していってください。
+```
+
+**詳細**: `HARNESS_WORKFLOW.md` の「第6段階：PRレビューと修正」を参照
+
+### 6. ドキュメント更新（harness-doc-updaterを使用）
 実装完了後、関連ドキュメントを更新し、計画を完了済みに移動します。
 
 **推奨**: `harness-doc-updater` サブエージェントを使用してコンテキストを節約
