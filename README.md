@@ -231,8 +231,9 @@ src/
 
 ## 実装状況
 
-### Phase 1: フロントエンド React UI ✅
+### Phase 1 完了 ✅
 
+**フロントエンド**:
 - ✅ React + Vite + TypeScript プロジェクトセットアップ
 - ✅ TailwindCSS スタイリング設定
 - ✅ 階層化ドメインアーキテクチャ実装
@@ -242,14 +243,26 @@ src/
 - ✅ 自動更新（1分間隔）
 - ✅ モックデータサポート（開発用）
 - ✅ エラーハンドリングとローディング表示
+- ✅ **包括的テストスイート（99.83% カバレッジ）**
 
-### 今後の計画
+**インフラ**:
+- ✅ Terraform + Terragrunt IaC 構築
+- ✅ Lambda Poller（Switchbot API定期取得）
+- ✅ Lambda API（FastAPI + Lambda Web Adapter）
+- ✅ DynamoDB（センサーデータ蓄積）
+- ✅ Lambda Function URL（APIエンドポイント）
+- ✅ Terraform CI/CD（GitHub Actions）
 
-- [ ] Lambda API のデプロイ
-- [ ] S3 + CloudFront へのフロントエンドデプロイ
-- [ ] Terraform/Terragrunt によるインフラ構築
-- [ ] テストの追加（カバレッジ80%以上）
-- [ ] CI/CD パイプライン構築
+### Phase 2 計画
+
+Phase 2の候補アイテム（優先度順）：
+
+1. **フロントエンドデプロイ** - S3 + CloudFront
+2. **モニタリング・アラート** - CloudWatch Dashboard & Alarms
+3. **CI/CD拡張** - Terraform Plan コメント、セキュリティスキャン
+4. **Lambda最適化** - Provisioned Concurrency、パフォーマンス改善
+
+詳細: [docs/NEXT_STEPS.md](./docs/NEXT_STEPS.md)
 
 ## 品質基準
 
@@ -272,9 +285,19 @@ MIT
 
 ## 変更履歴
 
-- 2026-03-28: フロントエンド React UI 実装完了（Phase 1）
+- 2026-03-29: Phase 1 完了
+  - **Terraform CI/CD**: GitHub Actions ワークフロー（PR #8）
+  - プロジェクト管理: 完了したプランをcompletedディレクトリに整理
+  - ドキュメント: NEXT_STEPS.md 作成
+- 2026-03-28: Frontend Tests 完了
+  - **99.83% テストカバレッジ達成**（PR #7）
+  - テスト基盤構築とCI/CD統合（PR #6）
+- 2026-03-28: Infrastructure IaC 完了
+  - Terraform + Terragrunt インフラ構築（PR #5）
+  - Lambda (Poller + API), DynamoDB デプロイ
+  - Devcontainer 設定（PR #4）
+- 2026-03-28: フロントエンド React UI 実装完了
   - React + Vite + TypeScript + TailwindCSS セットアップ
   - センサーダッシュボードと時系列グラフ実装
   - モックデータサポート追加
-  - ビルド成功確認
 - 2026-03-28: プロジェクト初期化
