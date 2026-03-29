@@ -19,7 +19,7 @@ vi.mock('../repository', () => ({
 const { SensorService } = await import('./SensorService')
 
 describe('SensorService', () => {
-  let service: SensorService
+  let service: InstanceType<typeof SensorService>
 
   beforeEach(() => {
     service = new SensorService()

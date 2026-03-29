@@ -47,8 +47,8 @@ describe('useInterval', () => {
   it('should pause interval when delay changes to null', () => {
     const callback = vi.fn()
     const { rerender } = renderHook(
-      ({ delay }) => useInterval(callback, delay),
-      { initialProps: { delay: 1000 } }
+      ({ delay }: { delay: number | null }) => useInterval(callback, delay),
+      { initialProps: { delay: 1000 as number | null } }
     )
 
     // First interval tick
@@ -66,8 +66,8 @@ describe('useInterval', () => {
   it('should restart interval when delay changes from null to number', () => {
     const callback = vi.fn()
     const { rerender } = renderHook(
-      ({ delay }) => useInterval(callback, delay),
-      { initialProps: { delay: null } }
+      ({ delay }: { delay: number | null }) => useInterval(callback, delay),
+      { initialProps: { delay: null as number | null } }
     )
 
     // With null delay, callback should not be called

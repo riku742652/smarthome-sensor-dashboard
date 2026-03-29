@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { SensorRepository } from './SensorRepository'
 import { mockSensorData, mockSensorDataResponse } from '@/test/utils/mockData'
-import type { SensorData, SensorDataResponse } from '../types'
 
 describe('SensorRepository', () => {
   let repository: SensorRepository
