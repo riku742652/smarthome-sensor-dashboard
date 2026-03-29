@@ -187,6 +187,48 @@ export SWITCHBOT_SECRET="your_secret"
 python -c "from lambda_function import lambda_handler; lambda_handler({}, {})"
 ```
 
+## CI/CD
+
+### GitHub Actions
+
+All Terraform and Terragrunt code is automatically checked on pull requests:
+
+- **Format Check**: `terraform fmt -check -recursive`
+- **HCL Format Check**: `terragrunt hcl fmt --check`
+- **Validate**: `terraform validate` for all modules
+
+### Local Development
+
+Before committing, run:
+
+```bash
+# Format all Terraform files
+terraform fmt -recursive terraform/
+
+# Format all Terragrunt HCL files
+terragrunt hcl fmt --working-dir terraform
+
+# Validate all modules
+for module in terraform/modules/*; do
+  cd "$module"
+  terraform init -backend=false
+  terraform validate
+  cd -
+done
+```
+
+### CI Workflow
+
+`.github/workflows/terraform-ci.yml` runs on:
+- Pull requests that modify `terraform/**` or `lambda/**`
+- Pushes to `main` branch
+
+Jobs:
+1. **terraform-format**: Check Terraform formatting
+2. **terraform-validate**: Validate all modules
+3. **terragrunt-format**: Check Terragrunt HCL formatting
+4. **summary**: Aggregate results
+
 ## Updating
 
 ### Update Lambda Poller Code

@@ -23,9 +23,9 @@ inputs = {
   dynamodb_table_arn = dependency.dynamodb.outputs.table_arn
 
   environment_variables = {
-    TABLE_NAME        = dependency.dynamodb.outputs.table_name
-    DEVICE_ID         = get_env("SWITCHBOT_DEVICE_ID", "")
-    SWITCHBOT_TOKEN   = get_env("SWITCHBOT_TOKEN", "")
-    SWITCHBOT_SECRET  = get_env("SWITCHBOT_SECRET", "")
+    TABLE_NAME       = dependency.dynamodb.outputs.table_name
+    DEVICE_ID        = get_env("SWITCHBOT_DEVICE_ID", "")
+    SWITCHBOT_TOKEN  = get_env("SWITCHBOT_TOKEN", "")
+    SWITCHBOT_SECRET = get_env("SWITCHBOT_SECRET", "")
   }
 }

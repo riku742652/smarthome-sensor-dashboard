@@ -50,5 +50,35 @@ dist-ssr
 
 # TypeScript
 *.tsbuildinfo
+
+# Claude Code
 .claude.json
 .claude/
+# But include subagents and project-scoped agent memory
+!.claude/agents/
+!.claude/agent-memory/
+# Exclude local agent memory (personal notes)
+.claude/agent-memory-local/
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Terragrunt
+**/.terragrunt-cache/*
+
+# Lambda
+lambda/**/__pycache__/
+lambda/**/.pytest_cache/
+lambda/**/*.pyc

@@ -44,13 +44,37 @@ Switchbot温湿度CO2センサーから値を定期的に取得し、WebUI上で
 - `src/` - アプリケーションソースコード
 - `tests/` - テストコード
 
+## サブエージェント
+
+コンテキストウィンドウを効率的に使用するため、このプロジェクトは**4つの専門サブエージェント**を使用します。
+各サブエージェントは特定のフェーズに特化し、詳細な作業を隔離されたコンテキストで実行します。
+
+詳細: `docs/SUBAGENTS.md`
+
+### 利用可能なサブエージェント
+
+1. **harness-researcher** - リサーチ専門（読み取り専用、Haiku）
+2. **harness-planner** - 計画作成専門（Sonnet）
+3. **harness-executor** - 実装専門（Sonnet）
+4. **harness-doc-updater** - ドキュメント更新専門（Haiku）
+
+### 使用例
+```
+Use harness-researcher to research [feature name]
+Use harness-planner to create an implementation plan
+Use harness-executor to implement the approved plan
+Use harness-doc-updater to update documentation
+```
+
 ## ワークフローの段階
 
-### 1. リサーチ
+### 1. リサーチ（harness-researcherを使用）
 新しいタスクを開始する前に、関連するコードとドキュメントを深く読み込み、
 `docs/exec-plans/active/[task-name]-research.md` に調査結果を記録します。
 
-### 2. 計画
+**推奨**: `harness-researcher` サブエージェントを使用してコンテキストを節約
+
+### 2. 計画（harness-plannerを使用）
 詳細な実装計画を `docs/exec-plans/active/[task-name]-plan.md` に作成します。
 計画には以下を含めます：
 - タスクの目標と成功基準
@@ -59,13 +83,27 @@ Switchbot温湿度CO2センサーから値を定期的に取得し、WebUI上で
 - テスト戦略
 - 既知のリスクと制約
 
+**推奨**: `harness-planner` サブエージェントを使用してコンテキストを節約
+
 ### 3. レビューとアノテーション
 人間が計画をレビューし、インラインコメントでフィードバックを追加します。
 必要に応じて計画を修正し、承認を得ます。
 
-### 4. 実装
+アノテーションの種類：
+- `<!-- FEEDBACK: ... -->` - 修正が必要
+- `<!-- QUESTION: ... -->` - 明確化が必要
+- `<!-- APPROVED: ... -->` - 承認済み
+
+### 4. 実装（harness-executorを使用）
 計画が承認されたら、実装を開始します。
 各タスク完了時に計画ドキュメントで進捗をマークします。
+
+**推奨**: `harness-executor` サブエージェントを使用してコンテキストを節約
+
+### 5. ドキュメント更新（harness-doc-updaterを使用）
+実装完了後、関連ドキュメントを更新し、計画を完了済みに移動します。
+
+**推奨**: `harness-doc-updater` サブエージェントを使用してコンテキストを節約
 
 ## エージェントへの期待事項
 
