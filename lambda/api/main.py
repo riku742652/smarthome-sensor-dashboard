@@ -75,6 +75,25 @@ def decimal_to_float(obj):
     return obj
 
 
+def _get_required_env_vars() -> tuple[str, str]:
+    """
+    必須環境変数 DEVICE_ID と TABLE_NAME を取得する。
+    未設定の場合はエラーログを出力し HTTPException(500) を送出する。
+    """
+    device_id = os.environ.get('DEVICE_ID')
+    table_name = os.environ.get('TABLE_NAME')
+
+    if not device_id or not table_name:
+        missing = [k for k, v in {'DEVICE_ID': device_id, 'TABLE_NAME': table_name}.items() if not v]
+        logger.error("Missing env vars", missing=missing)
+        raise HTTPException(
+            status_code=500,
+            detail="Server configuration error: DEVICE_ID or TABLE_NAME not set"
+        )
+
+    return device_id, table_name
+
+
 @app.get("/", response_model=HealthCheckResponse)
 async def root():
     """
@@ -113,15 +132,7 @@ async def get_sensor_data(
 
     - **hours**: 取得する時間範囲（1-168時間、デフォルト24時間）
     """
-    device_id = os.environ.get('DEVICE_ID')
-    table_name = os.environ.get('TABLE_NAME')
-
-    if not device_id or not table_name:
-        logger.error("Missing env vars", missing=[k for k, v in {'DEVICE_ID': device_id, 'TABLE_NAME': table_name}.items() if not v])
-        raise HTTPException(
-            status_code=500,
-            detail="Server configuration error: DEVICE_ID or TABLE_NAME not set"
-        )
+    device_id, table_name = _get_required_env_vars()
 
     logger.info("Fetching sensor data", hours=hours, device_id=device_id)
 
@@ -179,15 +190,7 @@ async def get_latest_data():
 
     最も新しいセンサーデータを返します。
     """
-    device_id = os.environ.get('DEVICE_ID')
-    table_name = os.environ.get('TABLE_NAME')
-
-    if not device_id or not table_name:
-        logger.error("Missing env vars", missing=[k for k, v in {'DEVICE_ID': device_id, 'TABLE_NAME': table_name}.items() if not v])
-        raise HTTPException(
-            status_code=500,
-            detail="Server configuration error: DEVICE_ID or TABLE_NAME not set"
-        )
+    device_id, table_name = _get_required_env_vars()
 
     logger.info("Fetching latest sensor data", device_id=device_id)
 

@@ -185,7 +185,9 @@ def fetch_switchbot_data(token: str, secret: str, device_id: str) -> dict:
         ).digest()
     ).decode('utf-8')
 
-    # API リクエスト（Lambda タイムアウト 30s のため 5s に設定: リトライ 3 回 × 最大 9s + 処理時間）
+    # API リクエスト（タイムアウトは環境変数 SWITCHBOT_TIMEOUT_SECONDS で設定可能、デフォルト 5s）
+    # Lambda タイムアウト 30s のため: リトライ 3 回 × 最大 9s + 処理時間 = 余裕を持って 5s
+    request_timeout = int(os.environ.get('SWITCHBOT_TIMEOUT_SECONDS', '5'))
     url = f"https://api.switch-bot.com/v1.1/devices/{device_id}/status"
     headers = {
         'Authorization': token,
@@ -194,7 +196,7 @@ def fetch_switchbot_data(token: str, secret: str, device_id: str) -> dict:
         'nonce': nonce
     }
 
-    response = requests.get(url, headers=headers, timeout=5)
+    response = requests.get(url, headers=headers, timeout=request_timeout)
     data = response.json()
 
     # レスポンスのステータスコードを確認する
