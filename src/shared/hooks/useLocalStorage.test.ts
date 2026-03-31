@@ -181,7 +181,7 @@ describe('useLocalStorage', () => {
   })
 
   it('should handle null initial value', () => {
-    const { result } = renderHook(() => useLocalStorage('nullKey', null))
+    const { result } = renderHook(() => useLocalStorage<string | null>('nullKey', null))
 
     expect(result.current[0]).toBeNull()
 
