@@ -32,7 +32,7 @@ describe('MetricCard', () => {
   })
 
   it('should apply color to value', () => {
-    const { container } = render(
+    render(
       <MetricCard
         label="CO2"
         value={800}
