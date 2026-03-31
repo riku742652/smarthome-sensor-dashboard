@@ -83,7 +83,7 @@ def lambda_handler(event, context):
             'statusCode': 200,
             'body': json.dumps({
                 'message': 'Data saved successfully',
-                'data': {k: float(v) if isinstance(v, Decimal) else v for k, v in sensor_data.items()}
+                'data': sensor_data
             })
         }
 
@@ -138,7 +138,7 @@ def _validate_sensor_data(sensor_data: dict, device_id: str) -> None:
     """
     required_fields = ['temperature', 'humidity', 'CO2']
     for field in required_fields:
-        if field not in sensor_data:
+        if sensor_data.get(field) is None:
             raise KeyError(f"Missing required field '{field}' in Switchbot response")
 
     temp = sensor_data['temperature']
@@ -197,6 +197,7 @@ def fetch_switchbot_data(token: str, secret: str, device_id: str) -> dict:
     }
 
     response = requests.get(url, headers=headers, timeout=request_timeout)
+    response.raise_for_status()
     data = response.json()
 
     # レスポンスのステータスコードを確認する
@@ -222,7 +223,7 @@ def save_to_dynamodb(table_name: str, device_id: str, sensor_data: dict):
         'timestamp': current_time,
         'temperature': Decimal(str(sensor_data['temperature'])),
         'humidity': Decimal(str(sensor_data['humidity'])),
-        'co2': sensor_data['CO2'],
+        'co2': int(sensor_data['CO2']),
         'expiresAt': expires_at
     }
 

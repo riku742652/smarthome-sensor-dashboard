@@ -164,7 +164,7 @@ async def get_sensor_data(
                 'timestamp': item['timestamp'],
                 'temperature': decimal_to_float(item['temperature']),
                 'humidity': decimal_to_float(item['humidity']),
-                'co2': item['co2']
+                'co2': decimal_to_float(item['co2'])
             }
             converted_items.append(SensorData(**converted_item))
 
