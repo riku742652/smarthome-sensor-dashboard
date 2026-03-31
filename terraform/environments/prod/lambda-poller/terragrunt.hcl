@@ -18,7 +18,7 @@ inputs = {
   timeout       = 30
   memory_size   = 128
 
-  schedule_expression = "rate(1 minute)"
+  schedule_expression = "rate(2 minutes)"
 
   dynamodb_table_arn = dependency.dynamodb.outputs.table_arn
 

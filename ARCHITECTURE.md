@@ -132,8 +132,10 @@ src/
 - **状態管理**: React Context + Hooks（必要に応じてZustand）
 
 ### バックエンド/API
-- **初期**: クライアントサイドでSwitchbot APIを直接呼び出し
-- **将来**: Node.js Express サーバー（必要に応じて）
+- **Lambda Poller**: Python + boto3、2分ごとにSwitchbot APIをポーリング、DynamoDBに永続化（指数バックオフリトライ付き）
+- **Lambda API**: FastAPI + Lambda Web Adapter、DynamoDBからセンサーデータを取得・提供（4エンドポイント）
+- **データベース**: DynamoDB（パーティションキー: deviceId、ソートキー: timestamp）
+- **ロギング**: 両Lambda とも CloudWatch 向けの構造化JSONログ
 
 ### 開発ツール
 - **リンター**: ESLint + TypeScript ESLint
@@ -184,6 +186,44 @@ src/
 
 詳細: `docs/RELIABILITY.md`
 
+## Lambda アーキテクチャの詳細
+
+### Poller Lambda (`lambda/poller/lambda_function.py`)
+
+**役割**: 定期的にSwitchbot APIをポーリングしセンサーデータを収集
+
+**実装ハイライト**:
+- **指数バックオフリトライ**: 最大3回、ベース遅延1秒、ジッター追加
+- **レスポンスバリデーション**: 必須フィールド（temperature, humidity, CO2）の存在確認、範囲外値は警告ログ
+- **構造化JSONログ**: CloudWatchでクエリ可能な形式でエラー・リトライ・成功を記録
+- **TTL管理**: データを30日で自動削除
+- **環境変数**: SWITCHBOT_TOKEN、SWITCHBOT_SECRET、DEVICE_ID、TABLE_NAME
+
+### API Lambda (`lambda/api/main.py`)
+
+**役割**: DynamoDB内のセンサーデータをHTTPで公開
+
+**エンドポイント**:
+- `GET /` - ヘルスチェック（ステータス確認）
+- `GET /health` - ヘルスチェックのエイリアス
+- `GET /data?hours=24` - 指定時間範囲のセンサーデータ（デフォルト24時間、最大168時間）
+- `GET /latest` - 最新のセンサーデータ1件
+
+**実装ハイライト**:
+- **FastAPI + Lambda Web Adapter**: コンテナ化してECR経由でLambdaにデプロイ
+- **CORS有効**: フロントエンドからのクロスオリジンリクエストを許可
+- **構造化JSONログ**: リクエスト・エラー・設定問題をCloudWatchに記録
+- **起動時バリデーション**: DEVICE_ID、TABLE_NAMEが設定されていることを確認
+- **Pydantic v2**: response_model による自動検証・OpenAPIドキュメント生成
+
+### テストカバレッジ
+
+- **Poller**: 100% 行カバレッジ（26テストケース）
+  - リトライロジック、バリデーション、エラーハンドリング、DynamoDB保存
+- **API**: 93% 行カバレッジ（23テストケース）
+  - 全エンドポイント、エラーパス、環境変数検証
+
 ## 変更履歴
 
 - 2026-03-28: 初期アーキテクチャ設計
+- 2026-03-29: Lambda実装完了（Poller + API）、構造化ログ・リトライ・バリデーション追加

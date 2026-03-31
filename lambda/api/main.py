@@ -3,17 +3,40 @@ FastAPI application for Smarthome Sensor Dashboard
 Lambda Web Adapter enabled
 """
 import os
+import json
+import logging
 from fastapi import FastAPI, Query, HTTPException
-from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import boto3
 from decimal import Decimal
-from typing import Optional
 import time
 
 from models.sensor import SensorData, SensorDataResponse, HealthCheckResponse
 
-# FastAPI app
+
+# CloudWatch 向け構造化 JSON ロガー
+class StructuredLogger:
+    def __init__(self, name: str):
+        self._logger = logging.getLogger(name)
+        self._logger.setLevel(logging.INFO)
+
+    def _log(self, level: str, message: str, **kwargs):
+        record = {"level": level, "message": message, **kwargs}
+        print(json.dumps(record))  # Lambda は stdout を CloudWatch にキャプチャする
+
+    def info(self, message: str, **kwargs):
+        self._log("INFO", message, **kwargs)
+
+    def warning(self, message: str, **kwargs):
+        self._log("WARNING", message, **kwargs)
+
+    def error(self, message: str, **kwargs):
+        self._log("ERROR", message, **kwargs)
+
+
+logger = StructuredLogger("api")
+
+# FastAPI アプリ
 app = FastAPI(
     title="Smarthome Sensor API",
     description="Switchbot温湿度CO2センサーデータAPI",
@@ -22,7 +45,7 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# CORS middleware
+# CORS ミドルウェア
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -31,12 +54,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# DynamoDB client
+# DynamoDB クライアント
 dynamodb = boto3.resource('dynamodb')
+
+# 環境変数が設定されていない場合の早期警告（リクエスト時にも失敗する）
+_startup_device_id = os.environ.get('DEVICE_ID', '')
+_startup_table_name = os.environ.get('TABLE_NAME', '')
+if not _startup_device_id or not _startup_table_name:
+    logger.warning(
+        "DEVICE_ID or TABLE_NAME not set at startup",
+        device_id_set=bool(_startup_device_id),
+        table_name_set=bool(_startup_table_name)
+    )
 
 
 def decimal_to_float(obj):
-    """Convert Decimal to float"""
+    """Decimal を float に変換する"""
     if isinstance(obj, Decimal):
         return float(obj)
     return obj
@@ -45,7 +78,7 @@ def decimal_to_float(obj):
 @app.get("/", response_model=HealthCheckResponse)
 async def root():
     """
-    Health check endpoint
+    ヘルスチェックエンドポイント
     """
     return HealthCheckResponse(
         status="ok",
@@ -56,7 +89,7 @@ async def root():
 @app.get("/health", response_model=HealthCheckResponse)
 async def health_check():
     """
-    Health check endpoint (alias for /)
+    ヘルスチェックエンドポイント（/ のエイリアス）
     """
     return HealthCheckResponse(
         status="ok",
@@ -80,20 +113,23 @@ async def get_sensor_data(
 
     - **hours**: 取得する時間範囲（1-168時間、デフォルト24時間）
     """
+    device_id = os.environ.get('DEVICE_ID')
+    table_name = os.environ.get('TABLE_NAME')
+
+    if not device_id or not table_name:
+        logger.error("Missing env vars", missing=[k for k, v in {'DEVICE_ID': device_id, 'TABLE_NAME': table_name}.items() if not v])
+        raise HTTPException(
+            status_code=500,
+            detail="Server configuration error: DEVICE_ID or TABLE_NAME not set"
+        )
+
+    logger.info("Fetching sensor data", hours=hours, device_id=device_id)
+
     try:
-        device_id = os.environ.get('DEVICE_ID')
-        table_name = os.environ.get('TABLE_NAME')
-
-        if not device_id or not table_name:
-            raise HTTPException(
-                status_code=500,
-                detail="Server configuration error: DEVICE_ID or TABLE_NAME not set"
-            )
-
-        # Calculate start time
+        # 取得開始時刻を計算する
         start_time = int((time.time() - hours * 3600) * 1000)
 
-        # Query DynamoDB
+        # DynamoDB クエリ
         table = dynamodb.Table(table_name)
         response = table.query(
             KeyConditionExpression='deviceId = :deviceId AND #ts >= :startTime',
@@ -104,12 +140,12 @@ async def get_sensor_data(
                 ':deviceId': device_id,
                 ':startTime': start_time
             },
-            ScanIndexForward=True  # Oldest first
+            ScanIndexForward=True  # 古い順
         )
 
         items = response.get('Items', [])
 
-        # Convert Decimal to float
+        # Decimal を float に変換する
         converted_items = []
         for item in items:
             converted_item = {
@@ -126,67 +162,76 @@ async def get_sensor_data(
             count=len(converted_items)
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
+        logger.error("DynamoDB query failed", error=str(e), endpoint="/data")
         raise HTTPException(
             status_code=500,
             detail=f"Error fetching data: {str(e)}"
         )
 
 
-@app.get("/latest")
+@app.get("/latest", response_model=SensorData)
 async def get_latest_data():
     """
     最新のセンサーデータを1件取得
 
     最も新しいセンサーデータを返します。
     """
+    device_id = os.environ.get('DEVICE_ID')
+    table_name = os.environ.get('TABLE_NAME')
+
+    if not device_id or not table_name:
+        logger.error("Missing env vars", missing=[k for k, v in {'DEVICE_ID': device_id, 'TABLE_NAME': table_name}.items() if not v])
+        raise HTTPException(
+            status_code=500,
+            detail="Server configuration error: DEVICE_ID or TABLE_NAME not set"
+        )
+
+    logger.info("Fetching latest sensor data", device_id=device_id)
+
     try:
-        device_id = os.environ.get('DEVICE_ID')
-        table_name = os.environ.get('TABLE_NAME')
-
-        if not device_id or not table_name:
-            raise HTTPException(
-                status_code=500,
-                detail="Server configuration error"
-            )
-
-        # Query latest data
+        # 最新データをクエリする
         table = dynamodb.Table(table_name)
         response = table.query(
             KeyConditionExpression='deviceId = :deviceId',
             ExpressionAttributeValues={
                 ':deviceId': device_id
             },
-            ScanIndexForward=False,  # Newest first
+            ScanIndexForward=False,  # 新しい順
             Limit=1
         )
 
         items = response.get('Items', [])
         if not items:
+            logger.info("No data found for device", device_id=device_id)
             raise HTTPException(
                 status_code=404,
                 detail="No data found"
             )
 
         item = items[0]
-        return {
+        converted_item = {
             'deviceId': item['deviceId'],
             'timestamp': item['timestamp'],
             'temperature': decimal_to_float(item['temperature']),
             'humidity': decimal_to_float(item['humidity']),
             'co2': item['co2']
         }
+        return SensorData(**converted_item)
 
     except HTTPException:
         raise
     except Exception as e:
+        logger.error("DynamoDB query failed", error=str(e), endpoint="/latest")
         raise HTTPException(
             status_code=500,
             detail=f"Error fetching latest data: {str(e)}"
         )
 
 
-# For local development
+# ローカル開発用
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
