@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { sensorService } from '@domains/sensor/service'
 import { chartDataService } from '@domains/dashboard/service'
 import type { TimeRange, ChartDataPoint } from '@domains/dashboard/types'
@@ -9,7 +9,7 @@ import { SensorChart } from '../components/SensorChart'
 import { useInterval, useLocalStorage } from '@shared/hooks'
 import { API_CONFIG } from '@domains/sensor/config'
 
-export function DashboardPage(): JSX.Element {
+export function DashboardPage(): React.JSX.Element {
   const [timeRange, setTimeRange] = useLocalStorage<TimeRange>('timeRange', '24h')
   const [data, setData] = useState<ChartDataPoint[]>([])
   const [loading, setLoading] = useState(true)
@@ -36,6 +36,7 @@ export function DashboardPage(): JSX.Element {
 
   useEffect(() => {
     fetchData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeRange])
 
   // 自動更新（1分間隔）

@@ -1,3 +1,4 @@
+import React from 'react'
 import {
   LineChart,
   Line,
@@ -16,10 +17,10 @@ interface SensorChartProps {
   data: ChartDataPoint[]
 }
 
-export function SensorChart({ data }: SensorChartProps): JSX.Element {
+export function SensorChart({ data }: SensorChartProps): React.JSX.Element {
   // カスタムツールチップ
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const CustomTooltip = ({ active, payload }: any): JSX.Element | null => {
+  const CustomTooltip = ({ active, payload }: any): React.JSX.Element | null => {
     if (!active || !payload || payload.length === 0) {
       return null
     }
