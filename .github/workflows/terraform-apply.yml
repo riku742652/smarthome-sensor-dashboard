@@ -62,37 +62,37 @@ jobs:
 
       - name: Plan (run-all)
         if: inputs.environment == 'all'
+        working-directory: terraform/environments/prod
         run: |
           terragrunt run-all plan \
-            --terragrunt-working-dir terraform/environments/prod \
             -lock-timeout=5m \
             -no-color
 
       - name: Plan (single)
         if: inputs.environment != 'all'
+        working-directory: terraform/environments/prod/${{ inputs.environment }}
         run: |
           terragrunt plan \
             -lock-timeout=5m \
             -no-color
-        working-directory: terraform/environments/prod/${{ inputs.environment }}
 
       - name: Apply (run-all)
         if: inputs.environment == 'all' && inputs.dry_run == false
+        working-directory: terraform/environments/prod
         run: |
           terragrunt run-all apply \
-            --terragrunt-working-dir terraform/environments/prod \
             -lock-timeout=5m \
             -no-color \
             -auto-approve
 
       - name: Apply (single)
         if: inputs.environment != 'all' && inputs.dry_run == false
+        working-directory: terraform/environments/prod/${{ inputs.environment }}
         run: |
           terragrunt apply \
             -lock-timeout=5m \
             -no-color \
             -auto-approve
-        working-directory: terraform/environments/prod/${{ inputs.environment }}
 
       - name: Write summary
         if: always()
