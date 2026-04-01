@@ -1,19 +1,34 @@
 output "function_name" {
-  description = "Lambda function name"
+  description = "Lambda 関数名"
   value       = aws_lambda_function.this.function_name
 }
 
 output "function_arn" {
-  description = "Lambda function ARN"
+  description = "Lambda 関数 ARN"
   value       = aws_lambda_function.this.arn
 }
 
 output "function_url" {
-  description = "Lambda function URL"
+  description = "Lambda 関数 URL"
   value       = aws_lambda_function_url.this.function_url
 }
 
 output "role_arn" {
-  description = "Lambda IAM role ARN"
+  description = "Lambda IAM ロール ARN"
   value       = aws_iam_role.lambda_role.arn
+}
+
+output "ecr_repository_url" {
+  description = "ECR リポジトリ URL（Docker push に使用）"
+  value       = var.create_ecr_repository ? aws_ecr_repository.this[0].repository_url : null
+}
+
+output "ecr_repository_arn" {
+  description = "ECR リポジトリ ARN"
+  value       = var.create_ecr_repository ? aws_ecr_repository.this[0].arn : null
+}
+
+output "ecr_registry_id" {
+  description = "ECR レジストリ ID（AWS アカウント ID）"
+  value       = var.create_ecr_repository ? aws_ecr_repository.this[0].registry_id : null
 }
