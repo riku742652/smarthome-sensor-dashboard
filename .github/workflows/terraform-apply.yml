@@ -31,6 +31,7 @@ jobs:
     env:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
       SWITCHBOT_DEVICE_ID: ${{ secrets.SWITCHBOT_DEVICE_ID }}
+      TERRAGRUNT_NON_INTERACTIVE: "true"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -63,7 +64,6 @@ jobs:
         if: inputs.environment == 'all'
         run: |
           terragrunt run-all plan \
-            --terragrunt-non-interactive \
             --terragrunt-working-dir terraform/environments/prod \
             -lock-timeout=5m \
             -no-color
@@ -80,7 +80,6 @@ jobs:
         if: inputs.environment == 'all' && inputs.dry_run == false
         run: |
           terragrunt run-all apply \
-            --terragrunt-non-interactive \
             --terragrunt-working-dir terraform/environments/prod \
             -lock-timeout=5m \
             -no-color \
