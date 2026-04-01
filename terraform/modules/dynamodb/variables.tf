@@ -19,3 +19,9 @@ variable "ttl_days" {
   type        = number
   default     = 30
 }
+
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+  default     = "ap-northeast-1"
+}

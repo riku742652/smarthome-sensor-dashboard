@@ -60,3 +60,9 @@ variable "schedule_expression" {
   type        = string
   default     = ""
 }
+
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+  default     = "ap-northeast-1"
+}

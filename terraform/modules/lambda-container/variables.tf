@@ -41,3 +41,9 @@ variable "dynamodb_table_arn" {
   type        = string
   default     = ""
 }
+
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+  default     = "ap-northeast-1"
+}
