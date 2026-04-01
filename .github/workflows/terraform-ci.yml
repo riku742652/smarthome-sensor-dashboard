@@ -308,10 +308,10 @@ jobs:
             exit 1
           fi
 
-          # Count CRITICAL and HIGH findings
-          CRITICAL_COUNT=$(grep -c "CRITICAL" trivy-table.txt || echo 0)
-          HIGH_COUNT=$(grep -c "HIGH" trivy-table.txt || echo 0)
-          MEDIUM_COUNT=$(grep -c "MEDIUM" trivy-table.txt || echo 0)
+          # Count CRITICAL and HIGH findings (match only finding header lines e.g. "AWS-0011 (HIGH):")
+          CRITICAL_COUNT=$(grep -cE "\(CRITICAL\):" trivy-table.txt || echo 0)
+          HIGH_COUNT=$(grep -cE "\(HIGH\):" trivy-table.txt || echo 0)
+          MEDIUM_COUNT=$(grep -cE "\(MEDIUM\):" trivy-table.txt || echo 0)
           TOTAL_CRITICAL_HIGH=$((CRITICAL_COUNT + HIGH_COUNT))
 
           echo "critical_high_count=$TOTAL_CRITICAL_HIGH" >> $GITHUB_OUTPUT
