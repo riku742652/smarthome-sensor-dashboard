@@ -64,7 +64,7 @@ jobs:
         if: inputs.environment == 'all'
         working-directory: terraform/environments/prod
         run: |
-          terragrunt run-all plan \
+          terragrunt run --all -- plan \
             -lock-timeout=5m \
             -no-color
 
@@ -80,7 +80,7 @@ jobs:
         if: inputs.environment == 'all' && inputs.dry_run == false
         working-directory: terraform/environments/prod
         run: |
-          terragrunt run-all apply \
+          terragrunt run --all -- apply \
             -lock-timeout=5m \
             -no-color \
             -auto-approve
