@@ -277,6 +277,7 @@ jobs:
           output: trivy-results.sarif
           severity: CRITICAL,HIGH,MEDIUM
           exit-code: '0'  # Do not fail here; we control failure in next step
+          trivyignores: .trivyignore
 
       - name: Upload SARIF to GitHub Security tab
         if: always()
@@ -295,6 +296,7 @@ jobs:
           output: trivy-table.txt
           severity: CRITICAL,HIGH,MEDIUM
           exit-code: '0'
+          trivyignores: .trivyignore
 
       - name: Evaluate Trivy results
         id: trivy_summary
