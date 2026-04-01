@@ -59,87 +59,53 @@ jobs:
           sudo mv terragrunt_linux_amd64 /usr/local/bin/terragrunt
           terragrunt --version
 
-      - name: Determine target environments
-        id: targets
+      - name: Plan (run-all)
+        if: inputs.environment == 'all'
         run: |
-          if [ "${{ inputs.environment }}" = "all" ]; then
-            # 依存関係の順番で実行
-            echo "envs=dynamodb lambda-api lambda-poller cloudfront" >> $GITHUB_OUTPUT
-          else
-            echo "envs=${{ inputs.environment }}" >> $GITHUB_OUTPUT
-          fi
+          terragrunt run-all plan \
+            --terragrunt-non-interactive \
+            --terragrunt-working-dir terraform/environments/prod \
+            -lock-timeout=5m \
+            -no-color
 
-      - name: Plan and Apply
-        id: apply
+      - name: Plan (single)
+        if: inputs.environment != 'all'
         run: |
-          DRY_RUN="${{ inputs.dry_run }}"
-          FAILED=0
-          SUMMARY=""
+          terragrunt plan \
+            -lock-timeout=5m \
+            -no-color
+        working-directory: terraform/environments/prod/${{ inputs.environment }}
 
-          for ENV in ${{ steps.targets.outputs.envs }}; do
-            echo ""
-            echo "========================================"
-            echo ">>> $ENV"
-            echo "========================================"
+      - name: Apply (run-all)
+        if: inputs.environment == 'all' && inputs.dry_run == false
+        run: |
+          terragrunt run-all apply \
+            --terragrunt-non-interactive \
+            --terragrunt-working-dir terraform/environments/prod \
+            -lock-timeout=5m \
+            -no-color \
+            -auto-approve
 
-            # Plan
-            echo "--- Plan ---"
-            set +e
-            terragrunt plan \
-              -lock-timeout=5m \
-              -no-color \
-              -out=/tmp/${ENV}.tfplan \
-              2>&1
-            PLAN_EXIT=${PIPESTATUS[0]}
-            set -e
+      - name: Apply (single)
+        if: inputs.environment != 'all' && inputs.dry_run == false
+        run: |
+          terragrunt apply \
+            -lock-timeout=5m \
+            -no-color \
+            -auto-approve
+        working-directory: terraform/environments/prod/${{ inputs.environment }}
 
-            if [ "$PLAN_EXIT" != "0" ]; then
-              echo "❌ Plan failed for $ENV"
-              SUMMARY="${SUMMARY}\n- **${ENV}**: ❌ Plan failed"
-              FAILED=1
-              continue
-            fi
-
-            if [ "$DRY_RUN" = "true" ]; then
-              echo "✅ Plan succeeded (dry run - skipping apply)"
-              SUMMARY="${SUMMARY}\n- **${ENV}**: ✅ Plan OK (dry run)"
-              continue
-            fi
-
-            # Apply
-            echo "--- Apply ---"
-            set +e
-            terragrunt apply \
-              -lock-timeout=5m \
-              -no-color \
-              -auto-approve \
-              /tmp/${ENV}.tfplan \
-              2>&1
-            APPLY_EXIT=${PIPESTATUS[0]}
-            set -e
-
-            if [ "$APPLY_EXIT" != "0" ]; then
-              echo "❌ Apply failed for $ENV"
-              SUMMARY="${SUMMARY}\n- **${ENV}**: ❌ Apply failed"
-              FAILED=1
-            else
-              echo "✅ Apply succeeded for $ENV"
-              SUMMARY="${SUMMARY}\n- **${ENV}**: ✅ Applied"
-            fi
-          done
-
-          # Write summary
+      - name: Write summary
+        if: always()
+        run: |
           {
             echo "## Terraform Apply Results"
             echo ""
-            if [ "$DRY_RUN" = "true" ]; then
+            if [ "${{ inputs.dry_run }}" = "true" ]; then
               echo "> **Dry run** - plan のみ実行（apply はスキップ）"
               echo ""
             fi
-            echo "**Environment**: ${{ inputs.environment }}"
-            echo ""
-            echo -e "$SUMMARY"
+            echo "- **Environment**: \`${{ inputs.environment }}\`"
+            echo "- **Dry run**: \`${{ inputs.dry_run }}\`"
+            echo "- **Triggered by**: ${{ github.actor }}"
           } >> $GITHUB_STEP_SUMMARY
-
-          exit $FAILED
-        working-directory: terraform/environments/prod
