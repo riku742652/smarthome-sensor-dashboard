@@ -8,6 +8,12 @@ terraform {
 
 dependency "dynamodb" {
   config_path = "../dynamodb"
+
+  mock_outputs = {
+    table_arn  = "arn:aws:dynamodb:ap-northeast-1:123456789012:table/mock-table"
+    table_name = "mock-table"
+  }
+  mock_outputs_allowed_terraform_commands = ["plan", "validate"]
 }
 
 inputs = {

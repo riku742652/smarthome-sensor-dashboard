@@ -25,3 +25,9 @@ variable "max_cache_ttl" {
   type        = number
   default     = 86400 # 24 hours
 }
+
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+  default     = "ap-northeast-1"
+}
