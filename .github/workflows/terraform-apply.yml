@@ -1,0 +1,145 @@
+name: Terraform Apply
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'デプロイ対象の環境'
+        required: true
+        type: choice
+        options:
+          - all
+          - dynamodb
+          - lambda-api
+          - lambda-poller
+          - cloudfront
+        default: all
+      dry_run:
+        description: 'Dry run (plan のみ、apply しない)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write  # Required for AWS OIDC authentication
+
+jobs:
+  terraform-apply:
+    name: Terraform Apply (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      SWITCHBOT_DEVICE_ID: ${{ secrets.SWITCHBOT_DEVICE_ID }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: github-actions-terraform-apply
+          aws-region: ap-northeast-1
+
+      - name: Verify AWS credentials
+        run: aws sts get-caller-identity
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.14.8
+          terraform_wrapper: false
+
+      - name: Setup Terragrunt
+        run: |
+          TERRAGRUNT_VERSION=0.96.1
+          wget -q https://github.com/gruntwork-io/terragrunt/releases/download/v${TERRAGRUNT_VERSION}/terragrunt_linux_amd64
+          chmod +x terragrunt_linux_amd64
+          sudo mv terragrunt_linux_amd64 /usr/local/bin/terragrunt
+          terragrunt --version
+
+      - name: Determine target environments
+        id: targets
+        run: |
+          if [ "${{ inputs.environment }}" = "all" ]; then
+            # 依存関係の順番で実行
+            echo "envs=dynamodb lambda-api lambda-poller cloudfront" >> $GITHUB_OUTPUT
+          else
+            echo "envs=${{ inputs.environment }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Plan and Apply
+        id: apply
+        run: |
+          DRY_RUN="${{ inputs.dry_run }}"
+          FAILED=0
+          SUMMARY=""
+
+          for ENV in ${{ steps.targets.outputs.envs }}; do
+            echo ""
+            echo "========================================"
+            echo ">>> $ENV"
+            echo "========================================"
+
+            # Plan
+            echo "--- Plan ---"
+            set +e
+            terragrunt plan \
+              -lock-timeout=5m \
+              -no-color \
+              -out=/tmp/${ENV}.tfplan \
+              2>&1
+            PLAN_EXIT=${PIPESTATUS[0]}
+            set -e
+
+            if [ "$PLAN_EXIT" != "0" ]; then
+              echo "❌ Plan failed for $ENV"
+              SUMMARY="${SUMMARY}\n- **${ENV}**: ❌ Plan failed"
+              FAILED=1
+              continue
+            fi
+
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "✅ Plan succeeded (dry run - skipping apply)"
+              SUMMARY="${SUMMARY}\n- **${ENV}**: ✅ Plan OK (dry run)"
+              continue
+            fi
+
+            # Apply
+            echo "--- Apply ---"
+            set +e
+            terragrunt apply \
+              -lock-timeout=5m \
+              -no-color \
+              -auto-approve \
+              /tmp/${ENV}.tfplan \
+              2>&1
+            APPLY_EXIT=${PIPESTATUS[0]}
+            set -e
+
+            if [ "$APPLY_EXIT" != "0" ]; then
+              echo "❌ Apply failed for $ENV"
+              SUMMARY="${SUMMARY}\n- **${ENV}**: ❌ Apply failed"
+              FAILED=1
+            else
+              echo "✅ Apply succeeded for $ENV"
+              SUMMARY="${SUMMARY}\n- **${ENV}**: ✅ Applied"
+            fi
+          done
+
+          # Write summary
+          {
+            echo "## Terraform Apply Results"
+            echo ""
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "> **Dry run** - plan のみ実行（apply はスキップ）"
+              echo ""
+            fi
+            echo "**Environment**: ${{ inputs.environment }}"
+            echo ""
+            echo -e "$SUMMARY"
+          } >> $GITHUB_STEP_SUMMARY
+
+          exit $FAILED
+        working-directory: terraform/environments/prod
