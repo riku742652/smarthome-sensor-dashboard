@@ -28,6 +28,9 @@ inputs = {
   image_tag_mutability  = "MUTABLE"
   scan_on_push          = true
 
+  # Lambda Function URL を有効化（API は HTTP トリガーが必要）
+  create_function_url = true
+
   dynamodb_table_arn = dependency.dynamodb.outputs.table_arn
 
   environment_variables = {
