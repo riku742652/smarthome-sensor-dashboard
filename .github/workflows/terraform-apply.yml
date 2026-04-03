@@ -84,23 +84,11 @@ jobs:
       # Lambda を含む全リソースを apply する
 
       - name: Apply Phase 1 - Create ECR repository
-        if: inputs.environment == 'all' && inputs.dry_run == false
+        if: (inputs.environment == 'all' || inputs.environment == 'lambda-api') && inputs.dry_run == false
         working-directory: terraform/environments/prod/lambda-api
         run: |
           # -target で ECR リポジトリのみを先行作成
-          # Lambda 本体は Phase 2（全環境 apply）で作成される
-          terragrunt apply \
-            -lock-timeout=5m \
-            -no-color \
-            -auto-approve \
-            -target=aws_ecr_repository.this[0]
-
-      - name: Apply - Create ECR repository (lambda-api)
-        if: inputs.environment == 'lambda-api' && inputs.dry_run == false
-        working-directory: terraform/environments/prod/lambda-api
-        run: |
-          # -target で ECR リポジトリのみを先行作成
-          # Lambda 本体は後続の Full lambda-api apply ステップで作成される
+          # Lambda 本体は後続の apply ステップ（Phase 2 または Full lambda-api）で作成される
           terragrunt apply \
             -lock-timeout=5m \
             -no-color \
