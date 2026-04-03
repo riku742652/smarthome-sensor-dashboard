@@ -22,7 +22,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write  # Required for AWS OIDC authentication
+  id-token: write  # AWS OIDC 認証に必要
 
 jobs:
   terraform-apply:
@@ -60,6 +60,8 @@ jobs:
           sudo mv terragrunt_linux_amd64 /usr/local/bin/terragrunt
           terragrunt --version
 
+      # ===== Plan ステップ（dry_run / apply 両方で実行）=====
+
       - name: Plan (run-all)
         if: inputs.environment == 'all'
         working-directory: terraform/environments/prod
@@ -76,7 +78,65 @@ jobs:
             -lock-timeout=5m \
             -no-color
 
-      - name: Apply (run-all)
+      # ===== Apply フェーズ 1: ECR リポジトリ先行作成 =====
+      # Lambda コンテナイメージが存在しない状態で Lambda を apply しようとすると
+      # 失敗するため、ECR リポジトリを先に作成し、その後 Docker イメージをプッシュしてから
+      # Lambda を含む全リソースを apply する
+
+      - name: Apply Phase 1 - Create ECR repository
+        if: (inputs.environment == 'all' || inputs.environment == 'lambda-api') && inputs.dry_run == false
+        working-directory: terraform/environments/prod/lambda-api
+        run: |
+          # -target で ECR リポジトリのみを先行作成
+          # Lambda 本体は後続の apply ステップ（Phase 2 または Full lambda-api）で作成される
+          terragrunt apply \
+            -lock-timeout=5m \
+            -no-color \
+            -auto-approve \
+            -target=aws_ecr_repository.this[0]
+
+      # ===== Docker ビルド・ECR プッシュ =====
+      # environment が 'all' または 'lambda-api' の場合のみ実行
+      # TODO: lambda-poller をコンテナ化する際は、このステップに poller のビルドも追加する
+      #   1. terraform/environments/prod/lambda-poller/terragrunt.hcl を
+      #      lambda-container モジュールに変更
+      #   2. 同様のビルド・プッシュステップを追加（ECR_REPOSITORY を変更）
+      #   3. Apply Phase 1 の -target に aws_ecr_repository.this[0] を追加
+      #   参考: docs/exec-plans/active/docker-build-research.md「8. 既知の制限と今後の拡張」
+
+      - name: Build and push Docker image
+        if: (inputs.environment == 'all' || inputs.environment == 'lambda-api') && inputs.dry_run == false
+        env:
+          ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-1.amazonaws.com
+          ECR_REPOSITORY: smarthome-sensor-api
+          IMAGE_TAG: sha-${{ github.sha }}
+        run: |
+          # "sha-" (4文字) + commit hash 7文字 = 11文字
+          SHORT_TAG=${IMAGE_TAG:0:11}
+
+          # ECR にログイン
+          aws ecr get-login-password --region ap-northeast-1 | \
+            docker login --username AWS --password-stdin "${ECR_REGISTRY}"
+
+          # Docker イメージビルド（linux/amd64 を明示指定: Lambda の実行環境は x86_64）
+          docker build \
+            --platform linux/amd64 \
+            -t "${ECR_REGISTRY}/${ECR_REPOSITORY}:latest" \
+            -t "${ECR_REGISTRY}/${ECR_REPOSITORY}:${SHORT_TAG}" \
+            lambda/api/
+
+          # ECR へプッシュ（latest: 常に最新イメージを示す）
+          docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
+
+          # ECR へプッシュ（sha-XXXXXXX: git コミットと紐付いたイメージ追跡用）
+          docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${SHORT_TAG}"
+
+          echo "Pushed: ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
+          echo "Pushed: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${SHORT_TAG}"
+
+      # ===== Apply フェーズ 2: 全リソース apply =====
+
+      - name: Apply Phase 2 - All environments
         if: inputs.environment == 'all' && inputs.dry_run == false
         working-directory: terraform/environments/prod
         run: |
@@ -85,14 +145,26 @@ jobs:
             -no-color \
             -auto-approve
 
+      - name: Apply - Full lambda-api
+        if: inputs.environment == 'lambda-api' && inputs.dry_run == false
+        working-directory: terraform/environments/prod/lambda-api
+        run: |
+          terragrunt apply \
+            -lock-timeout=5m \
+            -no-color \
+            -auto-approve
+
+      # lambda-api 以外の個別 apply（Docker ビルド不要な環境）
       - name: Apply (single)
-        if: inputs.environment != 'all' && inputs.dry_run == false
+        if: inputs.environment != 'all' && inputs.environment != 'lambda-api' && inputs.dry_run == false
         working-directory: terraform/environments/prod/${{ inputs.environment }}
         run: |
           terragrunt apply \
             -lock-timeout=5m \
             -no-color \
             -auto-approve
+
+      # ===== Summary =====
 
       - name: Write summary
         if: always()
@@ -107,4 +179,14 @@ jobs:
             echo "- **Environment**: \`${{ inputs.environment }}\`"
             echo "- **Dry run**: \`${{ inputs.dry_run }}\`"
             echo "- **Triggered by**: ${{ github.actor }}"
+            echo "- **Commit**: \`${GITHUB_SHA:0:7}\`"
+            echo ""
+            if [[ "${{ inputs.dry_run }}" == "false" ]] && \
+               [[ "${{ inputs.environment }}" == "all" || \
+                  "${{ inputs.environment }}" == "lambda-api" ]]; then
+              ECR_REGISTRY="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-1.amazonaws.com"
+              echo "### Docker Image"
+              echo "- **Registry**: \`${ECR_REGISTRY}/smarthome-sensor-api\`"
+              echo "- **Image tag**: \`sha-${GITHUB_SHA:0:7}\`"
+            fi
           } >> $GITHUB_STEP_SUMMARY
