@@ -9,8 +9,8 @@ output "function_arn" {
 }
 
 output "function_url" {
-  description = "Lambda 関数 URL"
-  value       = aws_lambda_function_url.this.function_url
+  description = "Lambda 関数 URL（create_function_url = false の場合は null）"
+  value       = var.create_function_url ? aws_lambda_function_url.this[0].function_url : null
 }
 
 output "role_arn" {

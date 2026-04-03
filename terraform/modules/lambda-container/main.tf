@@ -100,6 +100,7 @@ resource "aws_iam_role_policy" "lambda_dynamodb" {
     Statement = [{
       Effect = "Allow"
       Action = [
+        "dynamodb:PutItem",
         "dynamodb:GetItem",
         "dynamodb:Query",
         "dynamodb:Scan"
@@ -137,8 +138,9 @@ resource "aws_iam_role_policy" "lambda_ecr" {
   })
 }
 
-# Lambda Function URL
+# Lambda Function URL（HTTP トリガーが必要な Lambda 向け。Poller には不要）
 resource "aws_lambda_function_url" "this" {
+  count              = var.create_function_url ? 1 : 0
   function_name      = aws_lambda_function.this.function_name
   authorization_type = "NONE" # パブリックアクセス
 
@@ -149,4 +151,28 @@ resource "aws_lambda_function_url" "this" {
     allow_headers     = ["*"]
     max_age           = 86400
   }
+}
+
+# EventBridge (CloudWatch Events) スケジュール
+# schedule_expression が設定されている場合のみリソースを作成する
+resource "aws_cloudwatch_event_rule" "schedule" {
+  count               = var.schedule_expression != "" ? 1 : 0
+  name                = "${var.project_name}-${var.environment}-${var.function_name}-schedule"
+  schedule_expression = var.schedule_expression
+  description         = "${var.function_name} Lambda 関数を定期実行するスケジュールルール"
+}
+
+resource "aws_cloudwatch_event_target" "lambda" {
+  count = var.schedule_expression != "" ? 1 : 0
+  rule  = aws_cloudwatch_event_rule.schedule[0].name
+  arn   = aws_lambda_function.this.arn
+}
+
+resource "aws_lambda_permission" "allow_eventbridge" {
+  count         = var.schedule_expression != "" ? 1 : 0
+  statement_id  = "AllowExecutionFromEventBridge"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.this.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.schedule[0].arn
 }

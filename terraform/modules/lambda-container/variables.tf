@@ -91,3 +91,15 @@ variable "force_delete" {
   type        = bool
   default     = false
 }
+
+variable "schedule_expression" {
+  description = "EventBridge スケジュール式（例：rate(2 minutes)）。空文字の場合は EventBridge リソースを作成しない"
+  type        = string
+  default     = ""
+}
+
+variable "create_function_url" {
+  description = "Lambda Function URL を作成するかどうか。HTTP トリガー不要の Lambda（Poller 等）は false に設定する"
+  type        = bool
+  default     = true
+}

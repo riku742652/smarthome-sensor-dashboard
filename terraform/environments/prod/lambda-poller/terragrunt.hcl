@@ -3,7 +3,7 @@ include "root" {
 }
 
 terraform {
-  source = "../../../modules/lambda"
+  source = "../../../modules/lambda-container"
 }
 
 dependency "dynamodb" {
@@ -18,12 +18,20 @@ dependency "dynamodb" {
 
 inputs = {
   function_name = "poller"
-  handler       = "lambda_function.lambda_handler"
-  runtime       = "python3.11"
-  source_dir    = "${get_repo_root()}/lambda/poller"
   timeout       = 30
   memory_size   = 128
 
+  # ECR リポジトリ設定
+  create_ecr_repository = true
+  ecr_repository_name   = "smarthome-sensor-poller"
+  image_tag             = "latest"
+  image_tag_mutability  = "MUTABLE"
+  scan_on_push          = true
+
+  # HTTP トリガー不要（EventBridge で起動）
+  create_function_url = false
+
+  # EventBridge スケジュール（2分間隔）
   schedule_expression = "rate(2 minutes)"
 
   dynamodb_table_arn = dependency.dynamodb.outputs.table_arn
