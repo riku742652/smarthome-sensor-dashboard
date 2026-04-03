@@ -138,6 +138,12 @@ resource "aws_iam_role_policy" "lambda_ecr" {
   })
 }
 
+# aws_lambda_function_url に count を追加したことによるアドレス変更を Terraform に通知
+moved {
+  from = aws_lambda_function_url.this
+  to   = aws_lambda_function_url.this[0]
+}
+
 # Lambda Function URL（HTTP トリガーが必要な Lambda 向け。Poller には不要）
 resource "aws_lambda_function_url" "this" {
   count              = var.create_function_url ? 1 : 0
