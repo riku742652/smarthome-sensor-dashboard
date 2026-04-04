@@ -108,6 +108,14 @@ Use harness-doc-updater to update documentation
 - **AIレビュアー**: GitHub Apps（Claude、Codex、Gemini等）からのフィードバックに対応（人間レビューより先に完了させる）
 - **人間のレビュー**: レビューコメントに基づいて修正
 
+#### レビュー・CI 待機コマンド
+
+PR 作成後は以下のコマンドでレビューと CI を待機する:
+
+```bash
+sleep 30 && gh pr checks <PR番号> --watch --interval 30
+```
+
 #### AIレビュアーへの返信ルール
 - **Gemini** へのコメント返信には必ず `@gemini-code-assist` を冒頭に含める
 - **Codex**（chatgpt-codex-connector）へのコメント返信には必ず `@codex` を冒頭に含める

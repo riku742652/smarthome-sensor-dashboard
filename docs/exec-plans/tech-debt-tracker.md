@@ -16,6 +16,25 @@
 
 ---
 
+### 2026-04-04 - POST /data 認証を X-Api-Key から IAM 認証へ移行
+
+**場所**: `terraform/modules/lambda-container/main.tf`、`lambda/api/main.py`、`pi-client/ble_scanner.py`
+
+**問題**:
+X-Api-Key ヘッダーによるアプリケーションレベル認証は、シークレット管理や鍵漏洩リスクがあった。
+
+**推奨アクション（実施済み）**:
+- Raspberry Pi 専用の IAM 認証 Lambda Function URL を追加（`authorization_type = "AWS_IAM"`）
+- Raspberry Pi クライアントを SigV4 署名（botocore）に移行
+- パブリック URL の POST /data は X-Api-Key による二重防御を維持
+- Terraform で Raspberry Pi 用 IAM User/Policy/AccessKey を自動作成
+
+**優先度**: 高
+
+**ステータス**: Resolved
+
+---
+
 ### 2026-04-04 - API_KEY 環境変数が Terraform・CI に未設定
 
 **場所**: `terraform/environments/prod/lambda-api/terragrunt.hcl`
