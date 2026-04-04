@@ -12,6 +12,26 @@
 
 現在、技術的負債はありません。
 
+## 解決済みの技術的負債
+
+---
+
+### 2026-04-04 - API_KEY 環境変数が Terraform・CI に未設定
+
+**場所**: `terraform/environments/prod/lambda-api/terragrunt.hcl`
+
+**問題**:
+`POST /data` に X-Api-Key 認証を追加したが、Lambda に渡す `API_KEY` 環境変数が Terraform と CI ワークフローに設定されていなかった。本番環境で `POST /data` を呼ぶと 500 エラーになる状態だった。
+
+**推奨アクション（実施済み）**:
+- `terragrunt.hcl` に `API_KEY = get_env("API_KEY", "")` を追加
+- `.github/workflows/terraform-apply.yml` に `API_KEY: ${{ secrets.API_KEY }}` を追加
+- GitHub リポジトリの Settings → Secrets and variables → Actions に `API_KEY` を登録
+
+**優先度**: 高
+
+**ステータス**: Resolved
+
 実装中に発見した技術的負債は以下の形式で記録してください：
 
 ---
