@@ -3,12 +3,16 @@ SwitchBot CO2センサー BLE スキャナー
 BLE アドバタイズメントを受信し、センサーデータを Lambda API に POST する
 """
 import asyncio
+import json
 import logging
 import os
 import sys
 
 import httpx
 from bleak import BleakScanner
+from botocore.auth import SigV4Auth
+from botocore.awsrequest import AWSRequest
+from botocore.credentials import Credentials
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 
@@ -59,16 +63,33 @@ def parse_co2_sensor(mfr_data: bytes) -> dict | None:
 async def post_sensor_data(
     client: httpx.AsyncClient,
     api_url: str,
-    api_key: str,
+    aws_region: str,
     device_id: str,
     data: dict,
 ) -> None:
-    """センサーデータを Lambda API に POST する"""
-    payload = {"deviceId": device_id, **data}
+    """センサーデータを Lambda API に SigV4 署名付きで POST する"""
+    url = f"{api_url}/data"
+    payload = json.dumps({"deviceId": device_id, **data})
+
+    # SigV4 署名を生成する
+    # AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY は環境変数から自動的に読み込まれる
+    access_key = os.environ.get("AWS_ACCESS_KEY_ID", "")
+    secret_key = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
+    credentials = Credentials(access_key, secret_key)
+
+    aws_request = AWSRequest(
+        method="POST",
+        url=url,
+        data=payload,
+        headers={"Content-Type": "application/json"},
+    )
+    SigV4Auth(credentials, "lambda", aws_region).add_auth(aws_request)
+    signed_headers = dict(aws_request.headers)
+
     resp = await client.post(
-        f"{api_url}/data",
-        json=payload,
-        headers={"X-Api-Key": api_key},
+        url,
+        content=payload,
+        headers=signed_headers,
         timeout=10,
     )
     resp.raise_for_status()
@@ -115,12 +136,15 @@ async def scan_once(
 async def main() -> None:
     """メインループ: スキャン → POST を繰り返す"""
     api_url = os.environ.get("API_URL", "").rstrip("/")
-    api_key = os.environ.get("API_KEY", "")
     device_id = os.environ.get("DEVICE_ID", "")
+    aws_region = os.environ.get("AWS_DEFAULT_REGION", "ap-northeast-1")
+    aws_access_key = os.environ.get("AWS_ACCESS_KEY_ID", "")
+    aws_secret_key = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
 
-    if not all([api_url, api_key, device_id]):
+    if not all([api_url, device_id, aws_access_key, aws_secret_key]):
         logger.error(
-            "Missing required environment variables: API_URL, API_KEY, or DEVICE_ID"
+            "Missing required environment variables: API_URL, DEVICE_ID,"
+            " AWS_ACCESS_KEY_ID, or AWS_SECRET_ACCESS_KEY"
         )
         sys.exit(1)
 
@@ -150,7 +174,7 @@ async def main() -> None:
                     )
                 else:
                     await post_sensor_data(
-                        http_client, api_url, api_key, device_id, data
+                        http_client, api_url, aws_region, device_id, data
                     )
             except httpx.HTTPStatusError as e:
                 logger.error(

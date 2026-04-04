@@ -32,3 +32,19 @@ output "ecr_registry_id" {
   description = "ECR レジストリ ID（AWS アカウント ID）"
   value       = var.create_ecr_repository ? aws_ecr_repository.this[0].registry_id : null
 }
+
+output "iam_function_url" {
+  description = "IAM 認証 Lambda Function URL（Raspberry Pi 専用 POST エンドポイント）。create_iam_function_url = false の場合は null"
+  value       = var.create_iam_function_url ? aws_lambda_function_url.iam[0].function_url : null
+}
+
+output "raspberry_pi_access_key_id" {
+  description = "Raspberry Pi 用 IAM アクセスキー ID"
+  value       = var.create_iam_function_url ? aws_iam_access_key.raspberry_pi[0].id : null
+}
+
+output "raspberry_pi_secret_access_key" {
+  description = "Raspberry Pi 用 IAM シークレットアクセスキー（機密情報）"
+  value       = var.create_iam_function_url ? aws_iam_access_key.raspberry_pi[0].secret : null
+  sensitive   = true
+}
