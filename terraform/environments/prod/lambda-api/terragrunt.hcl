@@ -29,8 +29,8 @@ inputs = {
   scan_on_push          = true
 
   # Lambda Function URL 設定
-  create_function_url     = true   # パブリック URL（フロントエンド・GET 用）
-  create_iam_function_url = true   # IAM 認証 URL（Raspberry Pi 専用 POST 用）
+  create_function_url     = true # パブリック URL（フロントエンド・GET 用）
+  create_iam_function_url = true # IAM 認証 URL（Raspberry Pi 専用 POST 用）
 
   dynamodb_table_arn = dependency.dynamodb.outputs.table_arn
 
