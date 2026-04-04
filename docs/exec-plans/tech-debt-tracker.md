@@ -27,7 +27,7 @@ Lambda API の `create_function_url = false` により、パブリックな Func
 2. 以下のいずれかの方法で GET エンドポイント公開を実現：
    - API Gateway 経由での公開（推奨：キャッシング・レート制限可能）
    - CloudFront 経由でのキャッシング配信
-   - 新規の HTTP-only Function URL を作成（Terraform で `create_function_url = true` に戻す、または別リソースを追加）
+   - 新規のパブリック Function URL を作成（Terraform で `create_function_url = true` に戻す、または別リソースを追加）
 3. 設計判断：GET エンドポイントはパブリックであるべきか、認証が必要か
 
 **優先度**: 中

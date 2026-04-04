@@ -213,9 +213,9 @@ src/
 
 **実装ハイライト**:
 - **FastAPI + Lambda Web Adapter**: コンテナ化してECR経由でLambdaにデプロイ
-- **CORS有効**: フロントエンドのGET、Raspberry PiのPOST向けに設定
+- **CORS有効**: フロントエンドからのクロスオリジンリクエスト（GET等）を許可
 - **構造化JSONログ**: リクエスト・エラー・設定問題をCloudWatchに記録
-- **起動時バリデーション**: GET エンドポイント向けに DEVICE_ID、TABLE_NAME が設定されていることを確認
+- **起動時バリデーション**: DEVICE_ID (GET用) および TABLE_NAME (共通) が設定されていることを確認
 - **Pydantic v2**: request/response_model による自動検証・OpenAPIドキュメント生成
 
 ### BLE センサーデータフロー（Raspberry Pi 経由）
