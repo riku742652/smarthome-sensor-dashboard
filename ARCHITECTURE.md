@@ -244,9 +244,9 @@ uv run pytest tests/  # テスト実行
 
 **本番ビルド（Docker）**:
 ```dockerfile
-RUN pip install uv
+RUN pip install --no-cache-dir uv
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev  # ロックファイル完全準拠、開発依存除外
+RUN UV_SYSTEM_PYTHON=1 uv sync --frozen --no-dev  # ロックファイル完全準拠、開発依存除外
 ```
 
 **利点**:
