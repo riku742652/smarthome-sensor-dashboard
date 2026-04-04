@@ -36,5 +36,6 @@ inputs = {
   environment_variables = {
     TABLE_NAME = dependency.dynamodb.outputs.table_name
     DEVICE_ID  = get_env("SWITCHBOT_DEVICE_ID", "")
+    API_KEY    = get_env("API_KEY", "")
   }
 }
