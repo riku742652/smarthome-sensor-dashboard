@@ -4,9 +4,9 @@
 
 **作成日**: 2026-04-04
 
-**ステータス**: レビュー待ち
+**ステータス**: 完了（2026-04-04）
 
-**関連リサーチ**: `docs/exec-plans/active/uv-migration-research.md`
+**関連リサーチ**: `docs/exec-plans/completed/uv-migration-research.md`
 
 ---
 
@@ -17,16 +17,16 @@
 **目標**: `lambda/api` と `lambda/poller` の依存関係管理を pip + requirements.txt から uv + pyproject.toml + uv.lock に移行し、再現性の高いビルドとローカル開発体験を実現する。
 
 **成功基準**:
-- [ ] `lambda/api/pyproject.toml` が完成し、`uv sync` でローカル環境が構築できる
-- [ ] `lambda/poller/pyproject.toml` が新規作成され、`uv sync` でローカル環境が構築できる
-- [ ] `lambda/api/uv.lock` と `lambda/poller/uv.lock` がリポジトリに commit されている
-- [ ] `lambda/api/Dockerfile` が `uv sync --frozen --no-dev` で依存インストールする
-- [ ] `lambda/poller/Dockerfile` が `uv sync --frozen --no-dev` で依存インストールする
-- [ ] `docker build` が両 Lambda で正常に完了する
-- [ ] `pytest tests/` が両 Lambda で全テストパスする
-- [ ] `lambda/**/requirements.txt` と `lambda/**/requirements-dev.txt` が削除されている
-- [ ] `.github/workflows/terraform-ci.yml` のトリガーパスが `pyproject.toml` と `uv.lock` に更新されている
-- [ ] `.gitignore` に uv 仮想環境のパスが追加されている
+- [x] `lambda/api/pyproject.toml` が完成し、`uv sync` でローカル環境が構築できる
+- [x] `lambda/poller/pyproject.toml` が新規作成され、`uv sync` でローカル環境が構築できる
+- [x] `lambda/api/uv.lock` と `lambda/poller/uv.lock` がリポジトリに commit されている
+- [x] `lambda/api/Dockerfile` が `uv sync --frozen --no-dev` で依存インストールする
+- [x] `lambda/poller/Dockerfile` が `uv sync --frozen --no-dev` で依存インストールする
+- [x] `docker build` が両 Lambda で正常に完了する
+- [x] `pytest tests/` が両 Lambda で全テストパスする
+- [x] `lambda/**/requirements.txt` と `lambda/**/requirements-dev.txt` が削除されている
+- [x] `.github/workflows/terraform-ci.yml` のトリガーパスが `pyproject.toml` と `uv.lock` に更新されている
+- [x] `.gitignore` に uv 仮想環境のパスが追加されている
 
 ---
 
@@ -258,9 +258,9 @@ on:
    ```
 
 **完了基準**:
-- [ ] `lambda/api/uv.lock` が生成されている
-- [ ] `uv run pytest tests/` が全テストパスする
-- [ ] `lambda/api/pyproject.toml` の内容が requirements.txt と一致している
+- [x] `lambda/api/uv.lock` が生成されている
+- [x] `uv run pytest tests/` が全テストパスする
+- [x] `lambda/api/pyproject.toml` の内容が requirements.txt と一致している
 
 **影響ファイル**:
 - `lambda/api/pyproject.toml` (確認のみ、変更なし)
@@ -306,10 +306,10 @@ on:
    ```
 
 **完了基準**:
-- [ ] `lambda/poller/pyproject.toml` が作成されている
-- [ ] `lambda/poller/uv.lock` が生成されている
-- [ ] `uv run pytest tests/` が全テストパスする
-- [ ] `lambda/poller/requirements.txt` との依存が一致している
+- [x] `lambda/poller/pyproject.toml` が作成されている
+- [x] `lambda/poller/uv.lock` が生成されている
+- [x] `uv run pytest tests/` が全テストパスする
+- [x] `lambda/poller/requirements.txt` との依存が一致している
 
 **影響ファイル**:
 - `lambda/poller/pyproject.toml` (新規)
@@ -337,9 +337,9 @@ on:
    ```
 
 **完了基準**:
-- [ ] `docker build` が成功する
-- [ ] Dockerfile に `requirements.txt` の参照がなくなっている
-- [ ] `uv sync --frozen --no-dev` が記述されている
+- [x] `docker build` が成功する
+- [x] Dockerfile に `requirements.txt` の参照がなくなっている
+- [x] `uv sync --frozen --no-dev` が記述されている
 
 **影響ファイル**:
 - `lambda/api/Dockerfile` (修正)
@@ -361,9 +361,9 @@ on:
    ```
 
 **完了基準**:
-- [ ] `docker build` が成功する
-- [ ] Dockerfile に `requirements.txt` の参照がなくなっている
-- [ ] `uv sync --frozen --no-dev` が記述されている
+- [x] `docker build` が成功する
+- [x] Dockerfile に `requirements.txt` の参照がなくなっている
+- [x] `uv sync --frozen --no-dev` が記述されている
 
 **影響ファイル**:
 - `lambda/poller/Dockerfile` (修正)
@@ -386,8 +386,8 @@ on:
    ```
 
 **完了基準**:
-- [ ] 4つの requirements ファイルがすべて削除されている
-- [ ] lambda/ ディレクトリ内で requirements.txt への残存参照がない
+- [x] 4つの requirements ファイルがすべて削除されている
+- [x] lambda/ ディレクトリ内で requirements.txt への残存参照がない
 
 **影響ファイル**:
 - `lambda/api/requirements.txt` (削除)
@@ -417,8 +417,8 @@ on:
    これに `.venv/` の行を追加する。
 
 **完了基準**:
-- [ ] `.gitignore` に `lambda/**/.venv/` が追加されている
-- [ ] `uv sync` 後に `.venv/` が git に追加されないことを確認
+- [x] `.gitignore` に `lambda/**/.venv/` が追加されている
+- [x] `uv sync` 後に `.venv/` が git に追加されないことを確認
 
 **影響ファイル**:
 - `.gitignore` (修正)
@@ -436,9 +436,9 @@ on:
    - `'lambda/**/uv.lock'` を追加
 
 **完了基準**:
-- [ ] `lambda/**/requirements.txt` がトリガーパスから削除されている
-- [ ] `lambda/**/pyproject.toml` がトリガーパスに追加されている
-- [ ] `lambda/**/uv.lock` がトリガーパスに追加されている
+- [x] `lambda/**/requirements.txt` がトリガーパスから削除されている
+- [x] `lambda/**/pyproject.toml` がトリガーパスに追加されている
+- [x] `lambda/**/uv.lock` がトリガーパスに追加されている
 
 **影響ファイル**:
 - `.github/workflows/terraform-ci.yml` (修正)
@@ -512,14 +512,14 @@ uv sync --frozen
 ```
 
 ### 確認チェックリスト
-- [ ] `uv sync` が lambda/api で成功する
-- [ ] `uv sync` が lambda/poller で成功する
-- [ ] `uv run pytest tests/` が lambda/api で全テストパスする
-- [ ] `uv run pytest tests/` が lambda/poller で全テストパスする
-- [ ] `docker build` が lambda/api で成功する
-- [ ] `docker build` が lambda/poller で成功する
-- [ ] `.venv/` が git status に表示されない（.gitignore 適用確認）
-- [ ] requirements.txt ファイルが git status に削除済みとして表示される
+- [x] `uv sync` が lambda/api で成功する
+- [x] `uv sync` が lambda/poller で成功する
+- [x] `uv run pytest tests/` が lambda/api で全テストパスする
+- [x] `uv run pytest tests/` が lambda/poller で全テストパスする
+- [x] `docker build` が lambda/api で成功する
+- [x] `docker build` が lambda/poller で成功する
+- [x] `.venv/` が git status に表示されない（.gitignore 適用確認）
+- [x] requirements.txt ファイルが git status に削除済みとして表示される
 
 ---
 
@@ -603,9 +603,9 @@ uv sync --frozen
 
 <!-- FEEDBACK: -->
 
-- [ ] ARCHITECTURE.md の「開発ツール」セクションに uv を追加（Python 依存管理ツール）
-- [ ] 計画ドキュメントを `docs/exec-plans/completed/` に移動
-- [ ] ローカル開発手順のドキュメント更新（README があれば）
+- [x] ARCHITECTURE.md の「開発ツール」セクションに uv を追加（Python 依存管理ツール）
+- [x] 計画ドキュメントを `docs/exec-plans/completed/` に移動
+- [x] ローカル開発手順のドキュメント更新（README があれば）
 
 ---
 
@@ -625,4 +625,5 @@ uv sync --frozen
 
 ---
 
-*このドキュメントは人間によるレビューを待っています。各セクションに `<!-- APPROVED: -->` または `<!-- FEEDBACK: 指摘内容 -->` を追加してレビューしてください。*
+**実装完了日**: 2026-04-04
+**関連PR**: #16 (feat/uv-migration)
