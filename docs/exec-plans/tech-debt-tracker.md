@@ -10,7 +10,31 @@
 
 ## アクティブな技術的負債
 
-現在、技術的負債はありません。
+### 2026-04-05 - フロントエンドの Lambda API GET エンドポイント アクセス問題
+
+**場所**: `terraform/environments/prod/lambda-api/terragrunt.hcl`、フロントエンド側 API クライアント
+
+**問題**:
+Lambda API の `create_function_url = false` により、パブリックな Function URL が削除された。IAM Function URL のみが有効となり、GET `/data`, GET `/latest` エンドポイントはパブリックアクセスができない状態。フロントエンドが Lambda Function URL を直接呼び出している場合、403 エラーになる。
+
+**影響**:
+- パフォーマンス: 低（API Gateway または CloudFront 経由でラップすれば解決可）
+- 保守性: 中（フロントエンド側の実装を確認・修正が必要）
+- セキュリティ: 高（GET データをパブリック公開する設計を見直す機会）
+
+**推奨アクション**:
+1. フロントエンドが Lambda Function URL を直接参照しているかを確認
+2. 以下のいずれかの方法で GET エンドポイント公開を実現：
+   - API Gateway 経由での公開（推奨：キャッシング・レート制限可能）
+   - CloudFront 経由でのキャッシング配信
+   - 新規のパブリック Function URL を作成（Terraform で `create_function_url = true` に戻す、または別リソースを追加）
+3. 設計判断：GET エンドポイントはパブリックであるべきか、認証が必要か
+
+**優先度**: 中
+
+**ステータス**: Open
+
+---
 
 ## 解決済みの技術的負債
 
