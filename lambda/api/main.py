@@ -247,11 +247,19 @@ async def create_sensor_data(data: SensorDataCreate):
     - **humidity**: 湿度 (%)
     - **co2**: CO2 濃度 (ppm)
     """
-    _, table_name = _get_required_env_vars()
+    # POST /data は deviceId をリクエストから受け取るため TABLE_NAME のみ必要
+    table_name = os.environ.get('TABLE_NAME')
+    if not table_name:
+        logger.error("Missing env var", missing=["TABLE_NAME"])
+        raise HTTPException(
+            status_code=500,
+            detail="Server configuration error: TABLE_NAME not set"
+        )
 
-    # サーバー側でタイムスタンプを生成
-    current_time = int(time.time() * 1000)           # ミリ秒
-    expires_at = int(time.time()) + 30 * 24 * 60 * 60  # 30日後 UNIX 秒
+    # サーバー側でタイムスタンプを生成（同一の time.time() から計算し一貫性を保証）
+    now = time.time()
+    current_time = int(now * 1000)                    # ミリ秒
+    expires_at = int(now) + 30 * 24 * 60 * 60         # 30日後 UNIX 秒
 
     logger.info(
         "Saving sensor data",
