@@ -34,10 +34,18 @@ def make_sensor_item(temp=22.5, humidity=45.0, co2=800):
     }
 
 
+TEST_API_KEY = 'test-api-key'
+POST_HEADERS = {'X-Api-Key': TEST_API_KEY}
+
+
 @pytest.fixture
 def client(mocker):
     """モックされた環境変数と DynamoDB を持つ TestClient を作成する。"""
-    mocker.patch.dict(os.environ, {'DEVICE_ID': 'test-device', 'TABLE_NAME': 'test-table'})
+    mocker.patch.dict(os.environ, {
+        'DEVICE_ID': 'test-device',
+        'TABLE_NAME': 'test-table',
+        'API_KEY': TEST_API_KEY,
+    })
     with patch('main.dynamodb') as mock_db:
         yield TestClient(app), mock_db
 
@@ -94,7 +102,7 @@ class TestDataEndpoint:
         body = response.json()
         assert body["count"] == 1
         assert body["data"][0]["temperature"] == 22.5
-        assert body["data"][0]["humidity"] == 45.0
+        assert body["data"][0]["humidity"] == 45
         assert body["data"][0]["co2"] == 800
 
     def test_get_data_empty_result(self, client):
@@ -217,7 +225,7 @@ class TestLatestEndpoint:
         assert response.status_code == 200
         body = response.json()
         assert body["temperature"] == 25.0
-        assert body["humidity"] == 60.0
+        assert body["humidity"] == 60
         assert body["co2"] == 1000
 
     def test_get_latest_decimal_conversion(self, client):
@@ -270,4 +278,139 @@ class TestMissingEnvVars:
         with patch('main.dynamodb'):
             tc = TestClient(app)
             response = tc.get("/latest")
+        assert response.status_code == 500
+
+
+# ============================================================
+# TestCreateDataEndpoint
+# ============================================================
+
+class TestCreateDataEndpoint:
+    """POST /data エンドポイントのテスト"""
+
+    VALID_PAYLOAD = {
+        "deviceId": "test-device",
+        "temperature": 22.5,
+        "humidity": 45,   # int（湿度は整数）
+        "co2": 800,
+    }
+
+    def test_post_data_returns_201(self, client):
+        """正常なリクエストで 201 Created を返す。"""
+        tc, mock_db = client
+        mock_db.Table.return_value.put_item.return_value = {}
+        response = tc.post("/data", json=self.VALID_PAYLOAD, headers=POST_HEADERS)
+        assert response.status_code == 201
+
+    def test_post_data_response_contains_sensor_fields(self, client):
+        """レスポンスに SensorData の全フィールドが含まれる。"""
+        tc, mock_db = client
+        mock_db.Table.return_value.put_item.return_value = {}
+        response = tc.post("/data", json=self.VALID_PAYLOAD, headers=POST_HEADERS)
+        body = response.json()
+        assert body["deviceId"] == "test-device"
+        assert body["temperature"] == 22.5
+        assert body["humidity"] == 45
+        assert body["co2"] == 800
+        assert "timestamp" in body
+
+    def test_post_data_timestamp_is_integer(self, client):
+        """レスポンスの timestamp が整数（ミリ秒）である。"""
+        tc, mock_db = client
+        mock_db.Table.return_value.put_item.return_value = {}
+        response = tc.post("/data", json=self.VALID_PAYLOAD, headers=POST_HEADERS)
+        assert isinstance(response.json()["timestamp"], int)
+
+    def test_post_data_calls_put_item(self, client):
+        """DynamoDB の put_item が 1 回呼び出される。"""
+        tc, mock_db = client
+        mock_db.Table.return_value.put_item.return_value = {}
+        tc.post("/data", json=self.VALID_PAYLOAD, headers=POST_HEADERS)
+        mock_db.Table.return_value.put_item.assert_called_once()
+
+    def test_post_data_put_item_contains_expires_at(self, client):
+        """put_item に渡されるアイテムに expiresAt が含まれる。"""
+        tc, mock_db = client
+        mock_db.Table.return_value.put_item.return_value = {}
+        tc.post("/data", json=self.VALID_PAYLOAD, headers=POST_HEADERS)
+        call_args = mock_db.Table.return_value.put_item.call_args
+        item = call_args[1]["Item"]  # キーワード引数 Item=
+        assert "expiresAt" in item
+
+    def test_post_data_missing_device_id_returns_422(self, client):
+        """deviceId が欠けている場合は 422 を返す。"""
+        tc, mock_db = client
+        payload = {"temperature": 22.5, "humidity": 45, "co2": 800}
+        response = tc.post("/data", json=payload, headers=POST_HEADERS)
+        assert response.status_code == 422
+
+    def test_post_data_missing_temperature_returns_422(self, client):
+        """temperature が欠けている場合は 422 を返す。"""
+        tc, mock_db = client
+        payload = {"deviceId": "test-device", "humidity": 45, "co2": 800}
+        response = tc.post("/data", json=payload, headers=POST_HEADERS)
+        assert response.status_code == 422
+
+    def test_post_data_missing_co2_returns_422(self, client):
+        """co2 が欠けている場合は 422 を返す。"""
+        tc, mock_db = client
+        payload = {"deviceId": "test-device", "temperature": 22.5, "humidity": 45}
+        response = tc.post("/data", json=payload, headers=POST_HEADERS)
+        assert response.status_code == 422
+
+    def test_post_data_invalid_temperature_type_returns_422(self, client):
+        """temperature が文字列の場合は 422 を返す。"""
+        tc, mock_db = client
+        payload = {**self.VALID_PAYLOAD, "temperature": "invalid"}
+        response = tc.post("/data", json=payload, headers=POST_HEADERS)
+        assert response.status_code == 422
+
+    def test_post_data_dynamodb_error_returns_500(self, client):
+        """DynamoDB エラーで 500 とエラーメッセージを返す。"""
+        tc, mock_db = client
+        mock_db.Table.return_value.put_item.side_effect = Exception("DynamoDB error")
+        response = tc.post("/data", json=self.VALID_PAYLOAD, headers=POST_HEADERS)
+        assert response.status_code == 500
+        assert "Error saving data" in response.json()["detail"]
+
+    def test_post_data_missing_table_name_returns_500(self, mocker):
+        """TABLE_NAME が欠けている場合に 500 を返す。"""
+        mocker.patch.dict(os.environ, {'API_KEY': TEST_API_KEY}, clear=True)
+        with patch('main.dynamodb'):
+            tc = TestClient(app)
+            response = tc.post("/data", json={
+                "deviceId": "dev",
+                "temperature": 22.5,
+                "humidity": 45,
+                "co2": 800,
+            }, headers=POST_HEADERS)
+        assert response.status_code == 500
+
+    def test_post_data_negative_temperature(self, client):
+        """負の温度値（冬場など）が正常に保存される。"""
+        tc, mock_db = client
+        mock_db.Table.return_value.put_item.return_value = {}
+        payload = {**self.VALID_PAYLOAD, "temperature": -5.0}
+        response = tc.post("/data", json=payload, headers=POST_HEADERS)
+        assert response.status_code == 201
+        assert response.json()["temperature"] == -5.0
+
+    def test_post_data_missing_api_key_returns_401(self, client):
+        """X-Api-Key ヘッダーなしで 401 を返す。"""
+        tc, mock_db = client
+        response = tc.post("/data", json=self.VALID_PAYLOAD)
+        assert response.status_code == 401
+
+    def test_post_data_wrong_api_key_returns_401(self, client):
+        """X-Api-Key が不正な場合に 401 を返す。"""
+        tc, mock_db = client
+        response = tc.post("/data", json=self.VALID_PAYLOAD, headers={'X-Api-Key': 'wrong-key'})
+        assert response.status_code == 401
+
+    def test_post_data_missing_api_key_env_returns_500(self, mocker):
+        """API_KEY 環境変数が未設定の場合に 500 を返す。"""
+        mocker.patch.dict(os.environ, {'TABLE_NAME': 'tbl', 'DEVICE_ID': 'dev'}, clear=True)
+        with patch('main.dynamodb'):
+            tc = TestClient(app)
+            response = tc.post("/data", json=self.VALID_PAYLOAD, headers=POST_HEADERS)
         assert response.status_code == 500

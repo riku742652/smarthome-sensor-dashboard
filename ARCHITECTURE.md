@@ -209,6 +209,7 @@ src/
 - `GET /health` - ヘルスチェックのエイリアス
 - `GET /data?hours=24` - 指定時間範囲のセンサーデータ（デフォルト24時間、最大168時間）
 - `GET /latest` - 最新のセンサーデータ1件
+- `POST /data` - Raspberry Pi BLE スキャン結果を受け取り DynamoDB に保存（201 Created）
 
 **実装ハイライト**:
 - **FastAPI + Lambda Web Adapter**: コンテナ化してECR経由でLambdaにデプロイ
@@ -217,11 +218,23 @@ src/
 - **起動時バリデーション**: DEVICE_ID、TABLE_NAMEが設定されていることを確認
 - **Pydantic v2**: response_model による自動検証・OpenAPIドキュメント生成
 
+### BLE センサーデータフロー（Raspberry Pi 経由）
+
+SwitchBot Hub Mini なしの環境では、Raspberry Pi が BLE で直接センサーをスキャンし、
+Lambda API Function URL 経由でデータを登録します。
+
+```
+SwitchBot CO2センサー --BLE--> Raspberry Pi --HTTP POST--> Lambda API --> DynamoDB
+```
+
+Raspberry Pi 側のスクリプトは別リポジトリで管理します（関心の分離）。
+`POST /data` のリクエスト/レスポンス仕様が両リポジトリ間の契約です。
+
 ### テストカバレッジ
 
 - **Poller**: 100% 行カバレッジ（26テストケース）
   - リトライロジック、バリデーション、エラーハンドリング、DynamoDB保存
-- **API**: 93% 行カバレッジ（23テストケース）
+- **API**: 93% 行カバレッジ（35テストケース）
   - 全エンドポイント、エラーパス、環境変数検証
 
 ### Lambda 依存関係管理

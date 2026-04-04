@@ -110,6 +110,7 @@ Use harness-doc-updater to update documentation
 
 #### AIレビュアーへの返信ルール
 - **Gemini** へのコメント返信には必ず `@gemini-code-assist` を冒頭に含める
+- **Codex**（chatgpt-codex-connector）へのコメント返信には必ず `@codex` を冒頭に含める
 
 #### プロンプト例
 ```

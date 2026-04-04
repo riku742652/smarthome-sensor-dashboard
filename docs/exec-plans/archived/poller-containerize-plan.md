@@ -1,5 +1,12 @@
 # Lambda Poller コンテナ化 実装計画
 
+> **[アーカイブ済み - 2026-04-04]**
+> 方針転換により、このプランは実施しません。
+> SwitchBot Hub Mini が手元になく、クラウド API 経由でのデータ取得が不可能なため、
+> Lambda Poller によるポーリング方式から Raspberry Pi BLE スキャン方式に切り替えました。
+> 参照コードとして `lambda/poller/` は削除せず残します。
+> 代替プラン: `docs/exec-plans/active/ble-api-plan.md`
+
 **作成日**: 2026-04-04
 **リサーチ文書**: `docs/exec-plans/active/poller-containerize-research.md`
 **ステータス**: レビュー待ち

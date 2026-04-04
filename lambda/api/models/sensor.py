@@ -13,7 +13,7 @@ class SensorData(BaseModel):
     deviceId: str = Field(..., description="Device ID")
     timestamp: int = Field(..., description="Unix timestamp in milliseconds")
     temperature: float = Field(..., description="Temperature in Celsius")
-    humidity: float = Field(..., description="Humidity percentage")
+    humidity: int = Field(..., description="Humidity percentage")
     co2: int = Field(..., description="CO2 concentration in ppm")
 
 
@@ -27,3 +27,13 @@ class HealthCheckResponse(BaseModel):
     """ヘルスチェックレスポンス"""
     status: str = Field(..., description="Health status")
     message: str = Field(..., description="Status message")
+
+
+class SensorDataCreate(BaseModel):
+    """POST /data のリクエストボディモデル（Raspberry Pi からの入力）"""
+    model_config = ConfigDict(populate_by_name=True)
+
+    deviceId: str = Field(..., description="デバイス ID")
+    temperature: float = Field(..., description="温度 (°C)")
+    humidity: int = Field(..., description="湿度 (%)")
+    co2: int = Field(..., description="CO2 濃度 (ppm)")
