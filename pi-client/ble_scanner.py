@@ -5,7 +5,6 @@ BLE アドバタイズメントを受信し、センサーデータを Lambda AP
 import asyncio
 import logging
 import os
-import struct
 import sys
 
 import httpx
@@ -29,19 +28,26 @@ def parse_co2_sensor(mfr_data: bytes) -> dict | None:
     SwitchBot CO2センサーのメーカーデータをパースする。
 
     メーカーデータのレイアウト（16 バイト）:
-      bytes 8-9  : 温度 (little-endian uint16, 単位 0.1°C)
-      byte  10   : 湿度 (%)
-      bytes 13-14: CO2 濃度 (little-endian uint16, ppm)
+      byte  8    : 温度の小数部 (下位 4 ビット, 0.1°C 単位)
+      byte  9    : 温度の整数部 (下位 7 ビット) + 符号フラグ (bit7: 1=正, 0=負)
+      byte  10   : 湿度 (下位 7 ビット, %)
+      bytes 13-14: CO2 濃度 (big-endian uint16, ppm)
 
     パースできない場合は None を返す。
     """
     if len(mfr_data) < 15:
         return None
 
-    temp_raw = struct.unpack_from("<H", mfr_data, 8)[0]
-    temperature = round(temp_raw / 10.0, 1)
-    humidity = mfr_data[10]
-    co2 = struct.unpack_from("<H", mfr_data, 13)[0]
+    temp_decimal = mfr_data[8] & 0x0F
+    temp_integer = mfr_data[9] & 0x7F
+    is_positive = (mfr_data[9] & 0x80) > 0
+    temperature = temp_integer + (temp_decimal * 0.1)
+    if not is_positive:
+        temperature = -temperature
+    temperature = round(temperature, 1)
+
+    humidity = mfr_data[10] & 0x7F
+    co2 = int.from_bytes(mfr_data[13:15], byteorder="big")
 
     return {
         "temperature": temperature,
@@ -66,12 +72,22 @@ async def post_sensor_data(
         timeout=10,
     )
     resp.raise_for_status()
-    logger.info("POST /data success: temp=%.1f hum=%d co2=%d", data["temperature"], data["humidity"], data["co2"])
+    logger.info(
+        "POST /data success: temp=%.1f hum=%d co2=%d",
+        data["temperature"],
+        data["humidity"],
+        data["co2"],
+    )
 
 
-async def scan_once(scan_duration: float = 5.0) -> dict | None:
+async def scan_once(
+    scan_duration: float = 5.0,
+    device_mac: str | None = None,
+) -> dict | None:
     """
     BLE をスキャンして SwitchBot CO2センサーのデータを 1 件取得する。
+
+    device_mac が指定されている場合は、その MAC アドレスのデバイスのみを対象とする。
     scan_duration 秒以内にデータが見つからない場合は None を返す。
     """
     result: dict | None = None
@@ -80,6 +96,8 @@ async def scan_once(scan_duration: float = 5.0) -> dict | None:
         nonlocal result
         if result is not None:
             return  # すでに取得済み
+        if device_mac and device.address.upper() != device_mac.upper():
+            return  # 対象デバイス以外はスキップ
         mfr = adv.manufacturer_data.get(SWITCHBOT_COMPANY_ID)
         if mfr is None:
             return
@@ -96,15 +114,28 @@ async def scan_once(scan_duration: float = 5.0) -> dict | None:
 
 async def main() -> None:
     """メインループ: スキャン → POST を繰り返す"""
-    api_url = os.environ["API_URL"].rstrip("/")
-    api_key = os.environ["API_KEY"]
-    device_id = os.environ["DEVICE_ID"]
+    api_url = os.environ.get("API_URL", "").rstrip("/")
+    api_key = os.environ.get("API_KEY", "")
+    device_id = os.environ.get("DEVICE_ID", "")
+
+    if not all([api_url, api_key, device_id]):
+        logger.error(
+            "Missing required environment variables: API_URL, API_KEY, or DEVICE_ID"
+        )
+        sys.exit(1)
+
+    # BLE MAC アドレスによるフィルタリング（任意）
+    # 複数の SwitchBot デバイスが存在する環境では DEVICE_MAC を設定することを推奨
+    device_mac: str | None = os.environ.get("DEVICE_MAC") or None
+
     scan_interval = int(os.environ.get("SCAN_INTERVAL", "60"))
     scan_duration = float(os.environ.get("SCAN_DURATION", "5"))
 
     logger.info(
-        "Starting BLE scanner: device_id=%s interval=%ds scan=%.0fs",
+        "Starting BLE scanner: device_id=%s device_mac=%s"
+        " interval=%ds scan=%.0fs",
         device_id,
+        device_mac or "any",
         scan_interval,
         scan_duration,
     )
@@ -112,13 +143,19 @@ async def main() -> None:
     async with httpx.AsyncClient() as http_client:
         while True:
             try:
-                data = await scan_once(scan_duration)
+                data = await scan_once(scan_duration, device_mac)
                 if data is None:
-                    logger.warning("No SwitchBot CO2 sensor data found in scan window")
+                    logger.warning(
+                        "No SwitchBot CO2 sensor data found in scan window"
+                    )
                 else:
-                    await post_sensor_data(http_client, api_url, api_key, device_id, data)
+                    await post_sensor_data(
+                        http_client, api_url, api_key, device_id, data
+                    )
             except httpx.HTTPStatusError as e:
-                logger.error("API error: %s %s", e.response.status_code, e.response.text)
+                logger.error(
+                    "API error: %s %s", e.response.status_code, e.response.text
+                )
             except Exception:
                 logger.exception("Unexpected error")
 
