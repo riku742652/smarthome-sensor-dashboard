@@ -83,27 +83,6 @@ jobs:
       # 失敗するため、ECR リポジトリを先に作成し、その後 Docker イメージをプッシュしてから
       # Lambda を含む全リソースを apply する
 
-      # -target apply 前に moved ブロック対象リソースを state mv で先行移行する
-      # (state に古いアドレスが残っていると -target と moved ブロックが競合してエラーになるため)
-      # 冪等: 移行済み・fresh deploy のいずれでもエラーにならない
-      - name: Migrate state - lambda_function_url address (lambda-api)
-        if: (inputs.environment == 'all' || inputs.environment == 'lambda-api') && inputs.dry_run == false
-        working-directory: terraform/environments/prod/lambda-api
-        run: |
-          terragrunt state mv \
-            aws_lambda_function_url.this \
-            'aws_lambda_function_url.this[0]' \
-            2>&1 || echo "State migration skipped (already migrated or not present)"
-
-      - name: Migrate state - lambda_function_url address (lambda-poller)
-        if: (inputs.environment == 'all' || inputs.environment == 'lambda-poller') && inputs.dry_run == false
-        working-directory: terraform/environments/prod/lambda-poller
-        run: |
-          terragrunt state mv \
-            aws_lambda_function_url.this \
-            'aws_lambda_function_url.this[0]' \
-            2>&1 || echo "State migration skipped (already migrated or not present)"
-
       - name: Apply Phase 1 - Create ECR repository (lambda-api)
         if: (inputs.environment == 'all' || inputs.environment == 'lambda-api') && inputs.dry_run == false
         working-directory: terraform/environments/prod/lambda-api
