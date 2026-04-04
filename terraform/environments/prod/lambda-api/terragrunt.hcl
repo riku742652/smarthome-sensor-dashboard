@@ -28,14 +28,16 @@ inputs = {
   image_tag_mutability  = "MUTABLE"
   scan_on_push          = true
 
-  # Lambda Function URL を有効化（API は HTTP トリガーが必要）
-  create_function_url = true
+  # Lambda Function URL 設定
+  create_function_url     = true # パブリック URL（フロントエンド・GET 用）
+  create_iam_function_url = true # IAM 認証 URL（Raspberry Pi 専用 POST 用）
 
   dynamodb_table_arn = dependency.dynamodb.outputs.table_arn
 
   environment_variables = {
     TABLE_NAME = dependency.dynamodb.outputs.table_name
     DEVICE_ID  = get_env("SWITCHBOT_DEVICE_ID", "")
-    API_KEY    = get_env("API_KEY", "")
+    # パブリック URL 経由の POST /data を保護する二重防御として維持
+    API_KEY = get_env("API_KEY", "")
   }
 }

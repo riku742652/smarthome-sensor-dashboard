@@ -103,3 +103,9 @@ variable "create_function_url" {
   type        = bool
   default     = true
 }
+
+variable "create_iam_function_url" {
+  description = "IAM 認証付き Lambda Function URL を作成するかどうか（Raspberry Pi 用 POST エンドポイント向け）"
+  type        = bool
+  default     = false
+}

@@ -159,6 +159,62 @@ resource "aws_lambda_function_url" "this" {
   }
 }
 
+# IAM 認証 Lambda Function URL（Raspberry Pi 専用 POST エンドポイント）
+resource "aws_lambda_function_url" "iam" {
+  count              = var.create_iam_function_url ? 1 : 0
+  function_name      = aws_lambda_function.this.function_name
+  authorization_type = "AWS_IAM"
+
+  cors {
+    allow_credentials = false
+    allow_origins     = ["*"]
+    allow_methods     = ["POST"]
+    allow_headers     = ["*"]
+    max_age           = 86400
+  }
+}
+
+# Raspberry Pi 用 IAM User（create_iam_function_url = true のときのみ作成）
+resource "aws_iam_user" "raspberry_pi" {
+  count = var.create_iam_function_url ? 1 : 0
+  name  = "${var.project_name}-${var.environment}-raspberry-pi"
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-raspberry-pi"
+    Project     = var.project_name
+    Environment = var.environment
+  }
+}
+
+# Raspberry Pi 用 IAM ポリシー（lambda:InvokeFunctionUrl のみ許可）
+resource "aws_iam_user_policy" "raspberry_pi" {
+  count = var.create_iam_function_url ? 1 : 0
+  name  = "invoke-lambda-function-url"
+  user  = aws_iam_user.raspberry_pi[0].name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunctionUrl"
+        Resource = "${aws_lambda_function.this.arn}"
+        Condition = {
+          StringEquals = {
+            "lambda:FunctionUrlAuthType" = "AWS_IAM"
+          }
+        }
+      }
+    ]
+  })
+}
+
+# Raspberry Pi 用 IAM アクセスキー（sensitive 出力）
+resource "aws_iam_access_key" "raspberry_pi" {
+  count = var.create_iam_function_url ? 1 : 0
+  user  = aws_iam_user.raspberry_pi[0].name
+}
+
 # EventBridge (CloudWatch Events) スケジュール
 # schedule_expression が設定されている場合のみリソースを作成する
 resource "aws_cloudwatch_event_rule" "schedule" {

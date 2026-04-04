@@ -97,8 +97,10 @@ def _get_required_env_vars() -> tuple[str, str]:
 
 def _verify_api_key(request: Request) -> None:
     """
-    POST /data 専用の API キー認証。
+    POST /data 専用の API キー認証（パブリック Function URL 経由のリクエスト向け）。
     X-Api-Key ヘッダーを環境変数 API_KEY と定数時間比較で検証する。
+    IAM Function URL 経由のリクエストは Lambda Function URL レベルで認証済みのため、
+    このチェックは二重防御として機能する。
     API_KEY が未設定の場合は 500、ヘッダーが一致しない場合は 401 を返す。
     """
     api_key = os.environ.get('API_KEY')
@@ -255,12 +257,13 @@ async def get_latest_data():
 
 
 @app.post("/data", response_model=SensorData, status_code=201)
-async def create_sensor_data(data: SensorDataCreate, request: Request):
+async def create_sensor_data(data: SensorDataCreate, request: Request) -> SensorData:
     """
     センサーデータを DynamoDB に保存
 
     Raspberry Pi の BLE スキャン結果を受け取り、DynamoDB に保存します。
-    X-Api-Key ヘッダーによる認証が必要です。
+    X-Api-Key ヘッダーによる認証が必要です（パブリック URL 経由の二重防御）。
+    IAM Function URL 経由の場合は Lambda Function URL レベルで認証済みです。
     timestamp と expiresAt はサーバー側で生成します。
 
     - **deviceId**: デバイス ID

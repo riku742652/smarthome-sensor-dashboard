@@ -337,6 +337,29 @@ class TestCreateDataEndpoint:
         item = call_args[1]["Item"]  # キーワード引数 Item=
         assert "expiresAt" in item
 
+    def test_post_data_missing_api_key_returns_401(self, client):
+        """X-Api-Key ヘッダーなしで 401 を返す。"""
+        tc, mock_db = client
+        response = tc.post("/data", json=self.VALID_PAYLOAD)
+        assert response.status_code == 401
+
+    def test_post_data_wrong_api_key_returns_401(self, client):
+        """不正な X-Api-Key ヘッダーで 401 を返す。"""
+        tc, mock_db = client
+        response = tc.post("/data", json=self.VALID_PAYLOAD, headers={'X-Api-Key': 'wrong-key'})
+        assert response.status_code == 401
+
+    def test_post_data_missing_api_key_env_returns_500(self, mocker):
+        """API_KEY 環境変数が未設定の場合に 500 を返す。"""
+        mocker.patch.dict(os.environ, {
+            'DEVICE_ID': 'test-device',
+            'TABLE_NAME': 'test-table',
+        }, clear=True)
+        with patch('main.dynamodb'):
+            tc = TestClient(app)
+            response = tc.post("/data", json=self.VALID_PAYLOAD, headers=POST_HEADERS)
+        assert response.status_code == 500
+
     def test_post_data_missing_device_id_returns_422(self, client):
         """deviceId が欠けている場合は 422 を返す。"""
         tc, mock_db = client
@@ -394,23 +417,3 @@ class TestCreateDataEndpoint:
         response = tc.post("/data", json=payload, headers=POST_HEADERS)
         assert response.status_code == 201
         assert response.json()["temperature"] == -5.0
-
-    def test_post_data_missing_api_key_returns_401(self, client):
-        """X-Api-Key ヘッダーなしで 401 を返す。"""
-        tc, mock_db = client
-        response = tc.post("/data", json=self.VALID_PAYLOAD)
-        assert response.status_code == 401
-
-    def test_post_data_wrong_api_key_returns_401(self, client):
-        """X-Api-Key が不正な場合に 401 を返す。"""
-        tc, mock_db = client
-        response = tc.post("/data", json=self.VALID_PAYLOAD, headers={'X-Api-Key': 'wrong-key'})
-        assert response.status_code == 401
-
-    def test_post_data_missing_api_key_env_returns_500(self, mocker):
-        """API_KEY 環境変数が未設定の場合に 500 を返す。"""
-        mocker.patch.dict(os.environ, {'TABLE_NAME': 'tbl', 'DEVICE_ID': 'dev'}, clear=True)
-        with patch('main.dynamodb'):
-            tc = TestClient(app)
-            response = tc.post("/data", json=self.VALID_PAYLOAD, headers=POST_HEADERS)
-        assert response.status_code == 500
