@@ -37,6 +37,7 @@ inputs = {
   environment_variables = {
     TABLE_NAME = dependency.dynamodb.outputs.table_name
     DEVICE_ID  = get_env("SWITCHBOT_DEVICE_ID", "")
-    # API_KEY は IAM 認証に移行したため不要
+    # パブリック URL 経由の POST /data を保護する二重防御として維持
+    API_KEY = get_env("API_KEY", "")
   }
 }

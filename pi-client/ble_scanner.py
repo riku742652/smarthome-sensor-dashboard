@@ -141,7 +141,7 @@ async def main() -> None:
     aws_access_key = os.environ.get("AWS_ACCESS_KEY_ID", "")
     aws_secret_key = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
 
-    if not all([api_url, device_id, aws_access_key, aws_secret_key]):
+    if not (api_url and device_id and aws_access_key and aws_secret_key):
         logger.error(
             "Missing required environment variables: API_URL, DEVICE_ID,"
             " AWS_ACCESS_KEY_ID, or AWS_SECRET_ACCESS_KEY"
