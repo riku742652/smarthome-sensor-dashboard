@@ -11,7 +11,7 @@ import boto3
 from decimal import Decimal
 import time
 
-from models.sensor import SensorData, SensorDataResponse, HealthCheckResponse
+from models.sensor import SensorData, SensorDataCreate, SensorDataResponse, HealthCheckResponse
 
 
 # CloudWatch 向け構造化 JSON ロガー
@@ -232,6 +232,63 @@ async def get_latest_data():
             status_code=500,
             detail=f"Error fetching latest data: {str(e)}"
         )
+
+
+@app.post("/data", response_model=SensorData, status_code=201)
+async def create_sensor_data(data: SensorDataCreate):
+    """
+    センサーデータを DynamoDB に保存
+
+    Raspberry Pi の BLE スキャン結果を受け取り、DynamoDB に保存します。
+    timestamp と expiresAt はサーバー側で生成します。
+
+    - **deviceId**: デバイス ID
+    - **temperature**: 温度 (°C)
+    - **humidity**: 湿度 (%)
+    - **co2**: CO2 濃度 (ppm)
+    """
+    _, table_name = _get_required_env_vars()
+
+    # サーバー側でタイムスタンプを生成
+    current_time = int(time.time() * 1000)           # ミリ秒
+    expires_at = int(time.time()) + 30 * 24 * 60 * 60  # 30日後 UNIX 秒
+
+    logger.info(
+        "Saving sensor data",
+        device_id=data.deviceId,
+        temperature=data.temperature,
+        humidity=data.humidity,
+        co2=data.co2,
+        timestamp=current_time,
+    )
+
+    try:
+        table = dynamodb.Table(table_name)
+        item = {
+            'deviceId': data.deviceId,
+            'timestamp': current_time,
+            'temperature': Decimal(str(data.temperature)),  # float は Decimal 経由で保存
+            'humidity': data.humidity,                      # int はそのまま保存
+            'co2': data.co2,                                # int はそのまま保存
+            'expiresAt': expires_at,
+        }
+        table.put_item(Item=item)
+
+    except Exception as e:
+        logger.error("DynamoDB put_item failed", error=str(e), endpoint="/data", method="POST")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error saving data: {str(e)}"
+        )
+
+    # 保存データを SensorData 形式で返す
+    return SensorData(
+        deviceId=data.deviceId,
+        timestamp=current_time,
+        temperature=data.temperature,
+        humidity=data.humidity,
+        co2=data.co2,
+    )
 
 
 # ローカル開発用

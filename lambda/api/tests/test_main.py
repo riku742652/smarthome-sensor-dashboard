@@ -271,3 +271,118 @@ class TestMissingEnvVars:
             tc = TestClient(app)
             response = tc.get("/latest")
         assert response.status_code == 500
+
+
+# ============================================================
+# TestCreateDataEndpoint
+# ============================================================
+
+class TestCreateDataEndpoint:
+    """POST /data エンドポイントのテスト"""
+
+    VALID_PAYLOAD = {
+        "deviceId": "test-device",
+        "temperature": 22.5,
+        "humidity": 45,   # int（湿度は整数）
+        "co2": 800,
+    }
+
+    def test_post_data_returns_201(self, client):
+        """正常なリクエストで 201 Created を返す。"""
+        tc, mock_db = client
+        mock_db.Table.return_value.put_item.return_value = {}
+        response = tc.post("/data", json=self.VALID_PAYLOAD)
+        assert response.status_code == 201
+
+    def test_post_data_response_contains_sensor_fields(self, client):
+        """レスポンスに SensorData の全フィールドが含まれる。"""
+        tc, mock_db = client
+        mock_db.Table.return_value.put_item.return_value = {}
+        response = tc.post("/data", json=self.VALID_PAYLOAD)
+        body = response.json()
+        assert body["deviceId"] == "test-device"
+        assert body["temperature"] == 22.5
+        assert body["humidity"] == 45
+        assert body["co2"] == 800
+        assert "timestamp" in body
+
+    def test_post_data_timestamp_is_integer(self, client):
+        """レスポンスの timestamp が整数（ミリ秒）である。"""
+        tc, mock_db = client
+        mock_db.Table.return_value.put_item.return_value = {}
+        response = tc.post("/data", json=self.VALID_PAYLOAD)
+        assert isinstance(response.json()["timestamp"], int)
+
+    def test_post_data_calls_put_item(self, client):
+        """DynamoDB の put_item が 1 回呼び出される。"""
+        tc, mock_db = client
+        mock_db.Table.return_value.put_item.return_value = {}
+        tc.post("/data", json=self.VALID_PAYLOAD)
+        mock_db.Table.return_value.put_item.assert_called_once()
+
+    def test_post_data_put_item_contains_expires_at(self, client):
+        """put_item に渡されるアイテムに expiresAt が含まれる。"""
+        tc, mock_db = client
+        mock_db.Table.return_value.put_item.return_value = {}
+        tc.post("/data", json=self.VALID_PAYLOAD)
+        call_args = mock_db.Table.return_value.put_item.call_args
+        item = call_args[1]["Item"]  # キーワード引数 Item=
+        assert "expiresAt" in item
+
+    def test_post_data_missing_device_id_returns_422(self, client):
+        """deviceId が欠けている場合は 422 を返す。"""
+        tc, mock_db = client
+        payload = {"temperature": 22.5, "humidity": 45.0, "co2": 800}
+        response = tc.post("/data", json=payload)
+        assert response.status_code == 422
+
+    def test_post_data_missing_temperature_returns_422(self, client):
+        """temperature が欠けている場合は 422 を返す。"""
+        tc, mock_db = client
+        payload = {"deviceId": "test-device", "humidity": 45.0, "co2": 800}
+        response = tc.post("/data", json=payload)
+        assert response.status_code == 422
+
+    def test_post_data_missing_co2_returns_422(self, client):
+        """co2 が欠けている場合は 422 を返す。"""
+        tc, mock_db = client
+        payload = {"deviceId": "test-device", "temperature": 22.5, "humidity": 45.0}
+        response = tc.post("/data", json=payload)
+        assert response.status_code == 422
+
+    def test_post_data_invalid_temperature_type_returns_422(self, client):
+        """temperature が文字列の場合は 422 を返す。"""
+        tc, mock_db = client
+        payload = {**self.VALID_PAYLOAD, "temperature": "invalid"}
+        response = tc.post("/data", json=payload)
+        assert response.status_code == 422
+
+    def test_post_data_dynamodb_error_returns_500(self, client):
+        """DynamoDB エラーで 500 とエラーメッセージを返す。"""
+        tc, mock_db = client
+        mock_db.Table.return_value.put_item.side_effect = Exception("DynamoDB error")
+        response = tc.post("/data", json=self.VALID_PAYLOAD)
+        assert response.status_code == 500
+        assert "Error saving data" in response.json()["detail"]
+
+    def test_post_data_missing_table_name_returns_500(self, mocker):
+        """TABLE_NAME が欠けている場合に 500 を返す。"""
+        mocker.patch.dict(os.environ, {'DEVICE_ID': 'dev'}, clear=True)
+        with patch('main.dynamodb'):
+            tc = TestClient(app)
+            response = tc.post("/data", json={
+                "deviceId": "dev",
+                "temperature": 22.5,
+                "humidity": 45.0,
+                "co2": 800,
+            })
+        assert response.status_code == 500
+
+    def test_post_data_negative_temperature(self, client):
+        """負の温度値（冬場など）が正常に保存される。"""
+        tc, mock_db = client
+        mock_db.Table.return_value.put_item.return_value = {}
+        payload = {**self.VALID_PAYLOAD, "temperature": -5.0}
+        response = tc.post("/data", json=payload)
+        assert response.status_code == 201
+        assert response.json()["temperature"] == -5.0
