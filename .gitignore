@@ -82,3 +82,6 @@ terraform.rc
 lambda/**/__pycache__/
 lambda/**/.pytest_cache/
 lambda/**/*.pyc
+
+# uv
+lambda/**/.venv/

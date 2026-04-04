@@ -1,13 +1,16 @@
 FROM public.ecr.aws/lambda/python:3.11
 
+# Install uv
+RUN pip install uv
+
 WORKDIR ${LAMBDA_TASK_ROOT}
 
-# 依存パッケージをインストール
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy dependency files and install (production only)
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
 
-# アプリケーションコードをコピー
+# Copy application code
 COPY . .
 
-# Lambda イベントハンドラー（HTTP サーバー不要のため CMD で直接指定）
+# Lambda event handler
 CMD ["lambda_function.lambda_handler"]
