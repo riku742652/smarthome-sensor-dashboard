@@ -6,7 +6,8 @@ on:
       - 'terraform/**/*.tf'
       - 'terraform/**/*.hcl'
       - 'lambda/**/*.py'
-      - 'lambda/**/requirements.txt'
+      - 'lambda/**/pyproject.toml'
+      - 'lambda/**/uv.lock'
       - 'lambda/**/Dockerfile'
       - '.github/workflows/terraform-ci.yml'
   push:

@@ -1,0 +1,14 @@
+[project]
+name = "lambda-poller"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "boto3>=1.34.0",
+    "requests>=2.31.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.0",
+    "pytest-mock>=3.0",
+]
