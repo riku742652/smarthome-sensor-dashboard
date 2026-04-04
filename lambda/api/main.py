@@ -5,7 +5,8 @@ Lambda Web Adapter enabled
 import os
 import json
 import logging
-from fastapi import FastAPI, Query, HTTPException
+import secrets
+from fastapi import FastAPI, Query, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 import boto3
 from decimal import Decimal
@@ -94,6 +95,25 @@ def _get_required_env_vars() -> tuple[str, str]:
     return device_id, table_name
 
 
+def _verify_api_key(request: Request) -> None:
+    """
+    POST /data 専用の API キー認証。
+    X-Api-Key ヘッダーを環境変数 API_KEY と定数時間比較で検証する。
+    API_KEY が未設定の場合は 500、ヘッダーが一致しない場合は 401 を返す。
+    """
+    api_key = os.environ.get('API_KEY')
+    if not api_key:
+        logger.error("API_KEY not configured")
+        raise HTTPException(
+            status_code=500,
+            detail="Server configuration error: API_KEY not set"
+        )
+    provided = request.headers.get('X-Api-Key', '')
+    if not secrets.compare_digest(provided, api_key):
+        logger.warning("Invalid or missing X-Api-Key header")
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+
 @app.get("/", response_model=HealthCheckResponse)
 async def root():
     """
@@ -156,15 +176,15 @@ async def get_sensor_data(
 
         items = response.get('Items', [])
 
-        # Decimal を float に変換する
+        # Decimal を Python 型に変換する（humidity・co2 は int に明示変換）
         converted_items = []
         for item in items:
             converted_item = {
                 'deviceId': item['deviceId'],
                 'timestamp': item['timestamp'],
                 'temperature': decimal_to_float(item['temperature']),
-                'humidity': decimal_to_float(item['humidity']),
-                'co2': decimal_to_float(item['co2'])
+                'humidity': int(decimal_to_float(item['humidity'])),
+                'co2': int(decimal_to_float(item['co2']))
             }
             converted_items.append(SensorData(**converted_item))
 
@@ -219,8 +239,8 @@ async def get_latest_data():
             'deviceId': item['deviceId'],
             'timestamp': item['timestamp'],
             'temperature': decimal_to_float(item['temperature']),
-            'humidity': decimal_to_float(item['humidity']),
-            'co2': item['co2']
+            'humidity': int(decimal_to_float(item['humidity'])),  # 既存 float レコードも安全に int へ変換
+            'co2': int(item['co2'])
         }
         return SensorData(**converted_item)
 
@@ -235,11 +255,12 @@ async def get_latest_data():
 
 
 @app.post("/data", response_model=SensorData, status_code=201)
-async def create_sensor_data(data: SensorDataCreate):
+async def create_sensor_data(data: SensorDataCreate, request: Request):
     """
     センサーデータを DynamoDB に保存
 
     Raspberry Pi の BLE スキャン結果を受け取り、DynamoDB に保存します。
+    X-Api-Key ヘッダーによる認証が必要です。
     timestamp と expiresAt はサーバー側で生成します。
 
     - **deviceId**: デバイス ID
@@ -247,6 +268,9 @@ async def create_sensor_data(data: SensorDataCreate):
     - **humidity**: 湿度 (%)
     - **co2**: CO2 濃度 (ppm)
     """
+    # API キー認証（X-Api-Key ヘッダーを検証する）
+    _verify_api_key(request)
+
     # POST /data は deviceId をリクエストから受け取るため TABLE_NAME のみ必要
     table_name = os.environ.get('TABLE_NAME')
     if not table_name:
