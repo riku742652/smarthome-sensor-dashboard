@@ -336,35 +336,35 @@ class TestCreateDataEndpoint:
         """deviceId が欠けている場合は 422 を返す。"""
         tc, mock_db = client
         payload = {"temperature": 22.5, "humidity": 45, "co2": 800}
-        response = tc.post("/data", json=payload, )
+        response = tc.post("/data", json=payload)
         assert response.status_code == 422
 
     def test_post_data_missing_temperature_returns_422(self, client):
         """temperature が欠けている場合は 422 を返す。"""
         tc, mock_db = client
         payload = {"deviceId": "test-device", "humidity": 45, "co2": 800}
-        response = tc.post("/data", json=payload, )
+        response = tc.post("/data", json=payload)
         assert response.status_code == 422
 
     def test_post_data_missing_co2_returns_422(self, client):
         """co2 が欠けている場合は 422 を返す。"""
         tc, mock_db = client
         payload = {"deviceId": "test-device", "temperature": 22.5, "humidity": 45}
-        response = tc.post("/data", json=payload, )
+        response = tc.post("/data", json=payload)
         assert response.status_code == 422
 
     def test_post_data_invalid_temperature_type_returns_422(self, client):
         """temperature が文字列の場合は 422 を返す。"""
         tc, mock_db = client
         payload = {**self.VALID_PAYLOAD, "temperature": "invalid"}
-        response = tc.post("/data", json=payload, )
+        response = tc.post("/data", json=payload)
         assert response.status_code == 422
 
     def test_post_data_dynamodb_error_returns_500(self, client):
         """DynamoDB エラーで 500 とエラーメッセージを返す。"""
         tc, mock_db = client
         mock_db.Table.return_value.put_item.side_effect = Exception("DynamoDB error")
-        response = tc.post("/data", json=self.VALID_PAYLOAD, )
+        response = tc.post("/data", json=self.VALID_PAYLOAD)
         assert response.status_code == 500
         assert "Error saving data" in response.json()["detail"]
 
@@ -378,7 +378,7 @@ class TestCreateDataEndpoint:
                 "temperature": 22.5,
                 "humidity": 45,
                 "co2": 800,
-            }, )
+            })
         assert response.status_code == 500
 
     def test_post_data_negative_temperature(self, client):
@@ -386,6 +386,6 @@ class TestCreateDataEndpoint:
         tc, mock_db = client
         mock_db.Table.return_value.put_item.return_value = {}
         payload = {**self.VALID_PAYLOAD, "temperature": -5.0}
-        response = tc.post("/data", json=payload, )
+        response = tc.post("/data", json=payload)
         assert response.status_code == 201
         assert response.json()["temperature"] == -5.0
