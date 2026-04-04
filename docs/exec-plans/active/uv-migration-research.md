@@ -329,14 +329,14 @@ paths:
 ### 既存実装
 
 #### pyproject.toml（`lambda/api`）
-- ファイルパス: `/Users/riku/Work/smarthome/lambda/api/pyproject.toml`
+- ファイルパス: `lambda/api/pyproject.toml`
 - 構成: `[project]`、`[dependency-groups]`、`[build-system]`
 - 注記: `hatchling` をビルドバックエンドとして使用
 
 #### Dockerfile（`lambda/api` と `lambda/poller`）
 - ファイルパス: 
-  - `/Users/riku/Work/smarthome/lambda/api/Dockerfile`
-  - `/Users/riku/Work/smarthome/lambda/poller/Dockerfile`
+  - `lambda/api/Dockerfile`
+  - `lambda/poller/Dockerfile`
 - 共通: `public.ecr.aws/lambda/python:3.11` ベース、`pip install -r requirements.txt`
 
 #### CI/CD ワークフロー

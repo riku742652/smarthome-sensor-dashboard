@@ -4,14 +4,14 @@ FROM public.ecr.aws/lambda/python:3.11
 COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.7.1 /lambda-adapter /opt/extensions/lambda-adapter
 
 # Install uv
-RUN pip install uv
+RUN pip install --no-cache-dir uv
 
 # Set working directory
 WORKDIR ${LAMBDA_TASK_ROOT}
 
-# Copy dependency files and install (production only)
+# Copy dependency files and install into system Python (Lambda runtime uses system interpreter)
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev
+RUN UV_SYSTEM_PYTHON=1 uv sync --frozen --no-dev
 
 # Copy application code
 COPY . .

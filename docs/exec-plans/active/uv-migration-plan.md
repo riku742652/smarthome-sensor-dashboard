@@ -85,11 +85,9 @@ dev = [
     "pytest-mock>=3.0",
     "httpx>=0.24.0",
 ]
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
 ```
+
+> **注記**: `[build-system]` セクションは不要（Lambda はパッケージとしてビルドしないため省略）
 
 **確認事項**:
 - `requirements.txt` との対応: `fastapi>=0.104.0`, `mangum>=0.17.0`, `boto3>=1.34.0`, `uvicorn>=0.24.0`, `pydantic>=2.0.0` - 一致
@@ -112,11 +110,9 @@ dev = [
     "pytest>=7.0",
     "pytest-mock>=3.0",
 ]
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
 ```
+
+> **注記**: `[build-system]` セクションは不要（Lambda はパッケージとしてビルドしないため省略）
 
 **確認事項**:
 - `requirements.txt` との対応: `boto3>=1.34.0`, `requests>=2.31.0` - 一致
