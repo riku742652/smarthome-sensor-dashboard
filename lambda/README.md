@@ -45,18 +45,23 @@ DynamoDB内のセンサーデータをHTTPで公開します。FastAPI + Lambda 
 
 ### セットアップ
 
-各Lambda関数のディレクトリに移動し、開発用依存関係をインストール：
+uv を使用して各 Lambda 関数の依存関係をセットアップします。
 
+**uv がインストールされていない場合**:
 ```bash
-cd lambda/poller
-pip install -r requirements-dev.txt
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-または
+**Poller Lambda**:
+```bash
+cd lambda/poller
+uv sync  # pyproject.toml から仮想環境をセットアップ
+```
 
+**API Lambda**:
 ```bash
 cd lambda/api
-pip install -r requirements-dev.txt
+uv sync  # pyproject.toml から仮想環境をセットアップ
 ```
 
 ### テスト実行
@@ -64,20 +69,20 @@ pip install -r requirements-dev.txt
 **Poller Lambda**:
 ```bash
 cd lambda/poller
-python -m pytest tests/ -v
+uv run pytest tests/ -v
 ```
 
 **API Lambda**:
 ```bash
 cd lambda/api
-python -m pytest tests/ -v
+uv run pytest tests/ -v
 ```
 
 ### カバレッジ確認
 
 ```bash
 cd lambda/poller
-python -m pytest tests/ --cov=lambda_function --cov-report=html
+uv run pytest tests/ --cov=lambda_function --cov-report=html
 ```
 
 ### ローカル開発（API Lambda）
@@ -86,8 +91,8 @@ FastAPI開発サーバーを直接実行（DynamoDBのモック時）：
 
 ```bash
 cd lambda/api
-pip install -r requirements.txt
-python main.py
+uv sync  # 依存関係をセットアップ
+uv run python main.py
 # http://localhost:8000/docs でOpenAPI UIを確認
 ```
 
@@ -141,25 +146,29 @@ inputs = {
 lambda/
 ├── poller/
 │   ├── lambda_function.py     # Poller Lambda メイン処理
-│   ├── requirements.txt        # 本番依存関係
-│   ├── requirements-dev.txt    # 開発・テスト依存関係
+│   ├── pyproject.toml         # 依存関係定義（uv用）
+│   ├── uv.lock                # ロックファイル（再現可能なビルド用）
 │   ├── tests/
 │   │   ├── __init__.py
 │   │   └── test_lambda_function.py  # ユニットテスト
-│   └── Dockerfile             # コンテナイメージ（オプション）
+│   └── Dockerfile             # コンテナイメージ（ECR用）
 ├── api/
 │   ├── main.py                # FastAPI アプリケーション
 │   ├── models/
 │   │   ├── __init__.py
 │   │   └── sensor.py          # Pydanticモデル定義
-│   ├── requirements.txt        # 本番依存関係
-│   ├── requirements-dev.txt    # 開発・テスト依存関係
+│   ├── pyproject.toml         # 依存関係定義（uv用）
+│   ├── uv.lock                # ロックファイル（再現可能なビルド用）
 │   ├── tests/
 │   │   ├── __init__.py
 │   │   └── test_main.py       # ユニットテスト
 │   └── Dockerfile             # Lambda Web Adapter用コンテナイメージ
 └── README.md
 ```
+
+**依存関係管理**: uv（pyproject.toml + uv.lock）
+- 従来の requirements.txt は削除済み
+- `[project]` で本番依存、`[dependency-groups] dev` で開発依存を管理
 
 ## トラブルシューティング
 

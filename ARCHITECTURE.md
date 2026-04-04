@@ -142,6 +142,7 @@ src/
 - **フォーマッター**: Prettier
 - **テスト**: Vitest + React Testing Library
 - **型チェック**: TypeScript strict mode
+- **Python 依存管理**: uv（pyproject.toml + uv.lock による再現可能なビルド）
 
 ## 不変条件（機械的に適用）
 
@@ -222,6 +223,37 @@ src/
   - リトライロジック、バリデーション、エラーハンドリング、DynamoDB保存
 - **API**: 93% 行カバレッジ（23テストケース）
   - 全エンドポイント、エラーパス、環境変数検証
+
+### Lambda 依存関係管理
+
+**パッケージマネージャー**: uv（Python 高速パッケージマネージャー）
+
+**構成**:
+- `lambda/api/pyproject.toml` - API Lambda の依存定義（FastAPI, boto3, pydantic など）
+- `lambda/api/uv.lock` - API Lambda の完全にロックされた依存版（再現可能なビルド用）
+- `lambda/poller/pyproject.toml` - Poller Lambda の依存定義（boto3, requests など）
+- `lambda/poller/uv.lock` - Poller Lambda の完全にロックされた依存版
+
+**ローカル開発**:
+```bash
+# 各 Lambda ディレクトリで
+cd lambda/api  # or lambda/poller
+uv sync        # pyproject.toml から仮想環境をセットアップ
+uv run pytest tests/  # テスト実行
+```
+
+**本番ビルド（Docker）**:
+```dockerfile
+RUN pip install --no-cache-dir uv
+COPY pyproject.toml uv.lock ./
+RUN UV_SYSTEM_PYTHON=1 uv sync --frozen --no-dev  # ロックファイル完全準拠、開発依存除外
+```
+
+**利点**:
+- `uv.lock` によりローカル・CI・本番で同じ依存版を保証（再現可能性）
+- `--frozen` オプションで意図しないバージョン更新を防止
+- uv による高速インストール（pip比で数倍高速）
+- 開発依存の明確な分離（`[dependency-groups] dev`）
 
 ## 変更履歴
 
