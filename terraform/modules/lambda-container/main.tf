@@ -165,6 +165,10 @@ resource "aws_lambda_function_url" "iam" {
   function_name      = aws_lambda_function.this.function_name
   authorization_type = "AWS_IAM"
 
+  # Lambda は Function URL を 1 つしか持てないため、
+  # NONE URL（this）が存在する場合は削除してから作成する必要がある
+  depends_on = [aws_lambda_function_url.this]
+
   cors {
     allow_credentials = false
     allow_origins     = ["*"]
