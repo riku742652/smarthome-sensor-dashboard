@@ -185,4 +185,4 @@ response = await http_client.post(url, content=payload, headers=signed_headers)
 - Raspberry Pi 専用の IAM 認証 Function URL を作成
 - SigV4 署名で Raspberry Pi を認証
 - GET エンドポイントはパブリック URL のまま維持
-- X-Api-Key からIAM 認証へ完全移行
+- X-Api-Key から IAM 認証へ移行（パブリック URL 側は二重防御として維持）

@@ -113,7 +113,7 @@ Use harness-doc-updater to update documentation
 PR 作成後は以下のコマンドでレビューと CI を待機する:
 
 ```bash
-sleep 30 && gh pr checks <PR番号> --watch --interval 30 2>&1 | head -60
+sleep 30 && gh pr checks <PR番号> --watch --interval 30
 ```
 
 #### AIレビュアーへの返信ルール

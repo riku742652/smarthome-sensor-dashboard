@@ -10,7 +10,7 @@
 - [x] IAM 認証 Function URL への署名なしリクエストが 403 を返す
 - [x] Raspberry Pi からの SigV4 署名付きリクエストが POST /data に成功する（201 Created）
 - [x] フロントエンドの GET /data、GET /latest、GET /health が引き続き正常に動作する
-- [x] Lambda API から `_verify_api_key()` 関数および `API_KEY` 環境変数への依存が削除される
+- [x] Lambda API の POST /data において IAM 認証が導入される（`_verify_api_key()` は二重防御として維持）
 - [x] Lambda API のテストカバレッジが 80% 以上を維持する
 - [x] `terraform plan` がエラーなく完了する
 
