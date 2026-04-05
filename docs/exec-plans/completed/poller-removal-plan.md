@@ -1,7 +1,7 @@
 # Lambda Poller 削除 実装計画
 
 **作成日**: 2026-04-05
-**リサーチ元**: `docs/exec-plans/active/poller-removal-research.md`
+**リサーチ元**: `docs/exec-plans/completed/poller-removal-research.md`
 
 ---
 
