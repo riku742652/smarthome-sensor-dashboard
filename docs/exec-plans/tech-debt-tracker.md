@@ -42,7 +42,7 @@ Lambda API の `create_function_url = false` により、パブリックな Func
 
 ### 2026-04-04 - POST /data 認証を X-Api-Key から IAM 認証へ移行
 
-**場所**: `terraform/modules/lambda-container/main.tf`、`lambda/api/main.py`、`pi-client/ble_scanner.py`
+**場所**: `terraform/modules/lambda-container/main.tf`、`lambda/api/main.py`、`smarthome-pi-client` リポジトリの `ble_scanner.py`（https://github.com/riku742652/smarthome-pi-client）
 
 **問題**:
 X-Api-Key ヘッダーによるアプリケーションレベル認証は、シークレット管理や鍵漏洩リスクがあった。
