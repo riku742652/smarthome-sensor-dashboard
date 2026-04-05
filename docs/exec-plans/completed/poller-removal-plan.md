@@ -19,7 +19,7 @@
 - [x] `ARCHITECTURE.md` から Poller Lambda 関連の記述が削除されている
 - [x] `lambda/README.md` から Poller Lambda 関連の記述が削除されている
 - [x] ECR リポジトリ `smarthome-sensor-poller` が AWS コンソール上で存在しないことを確認済み
-- [x] `poller`・`ポーリング`・`polling` の文字列がリポジトリ上に残っていないことを確認
+- [x] コード・Terraform・主要運用ドキュメント（`ARCHITECTURE.md`、`lambda/README.md`）から `poller`・`ポーリング`・`polling` の文字列が削除されていることを確認（`docs/exec-plans/` 配下の履歴ドキュメントは除く）
 
 ---
 
@@ -152,5 +152,6 @@ PR マージ後の Terraform Apply 実行後に以下をチェック:
 **検証結果**:
 - PR #25 マージ済み
 - CI（terraform-ci.yml）通過確認済み
-- Terraform plan で lambda-poller リソースの削除が検出・実行
+- Terraform plan で lambda-poller リソースの削除差分を確認
+- GitHub Actions（Terraform Apply ワークフロー）経由の実行で lambda-poller リソースが destroy されたことを確認
 - AWS 上の Poller リソース（Lambda、ECR、EventBridge など）が削除されたことを確認
