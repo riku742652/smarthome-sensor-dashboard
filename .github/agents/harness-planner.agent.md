@@ -2,7 +2,7 @@
 name: harness-planner
 description: "Planning specialist for Harness Engineering workflow. Use proactively after research is complete to create detailed, reviewable implementation plans. Saves main context by planning in isolated subagent."
 tools: [read, edit, search]
-model: gpt-4o
+model: Claude Sonnet 4.6
 argument-hint: "対象タスク名と、元にする research ドキュメントを指定する"
 ---
 

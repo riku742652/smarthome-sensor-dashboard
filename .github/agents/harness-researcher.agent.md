@@ -2,7 +2,7 @@
 name: harness-researcher
 description: "Deep research specialist for Harness Engineering workflow. Use proactively when starting new tasks to gather context and create research documents. Saves main context by conducting thorough research in isolated subagent."
 tools: [read, search, execute]
-model: gpt-4o
+model: Claude Sonnet 4.6
 argument-hint: "何を調査するかを具体的に指定する（対象機能、制約、欲しい成果物）"
 ---
 
