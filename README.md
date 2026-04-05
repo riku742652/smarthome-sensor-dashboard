@@ -245,11 +245,11 @@ src/
 
 ### 今後の計画
 
-- [ ] Lambda API のデプロイ
-- [ ] S3 + CloudFront へのフロントエンドデプロイ
-- [ ] Terraform/Terragrunt によるインフラ構築
+- [x] Lambda API のデプロイ
+- [x] S3 + CloudFront へのフロントエンドデプロイ
+- [x] Terraform/Terragrunt によるインフラ構築
 - [ ] テストの追加（カバレッジ80%以上）
-- [ ] CI/CD パイプライン構築
+- [x] CI/CD パイプライン構築
 
 ## 品質基準
 
