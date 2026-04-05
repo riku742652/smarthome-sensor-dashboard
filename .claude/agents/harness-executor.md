@@ -1,7 +1,55 @@
 ---
 name: harness-executor
 description: Implementation specialist for Harness Engineering workflow. Use proactively when an approved plan exists. Implements code following the detailed plan step-by-step. Saves main context by executing in isolated subagent.
-tools: Read, Write, Edit, Bash, Grep, Glob, mcp__github__add_comment_to_pending_review, mcp__github__add_issue_comment, mcp__github__add_reply_to_pull_request_comment, mcp__github__create_branch, mcp__github__create_or_update_file, mcp__github__create_pull_request, mcp__github__delete_file, mcp__github__get_commit, mcp__github__get_file_contents, mcp__github__get_label, mcp__github__get_latest_release, mcp__github__get_me, mcp__github__get_release_by_tag, mcp__github__get_tag, mcp__github__issue_read, mcp__github__issue_write, mcp__github__list_branches, mcp__github__list_commits, mcp__github__list_issues, mcp__github__list_pull_requests, mcp__github__list_releases, mcp__github__list_tags, mcp__github__merge_pull_request, mcp__github__pull_request_read, mcp__github__pull_request_review_write, mcp__github__push_files, mcp__github__request_copilot_review, mcp__github__search_code, mcp__github__search_issues, mcp__github__search_pull_requests, mcp__github__search_repositories, mcp__github__search_users, mcp__github__sub_issue_write, mcp__github__update_pull_request, mcp__github__update_pull_request_branch
+tools:
+  # 基本ツール
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Grep
+  - Glob
+  # GitHub MCP - レビュー・コメント
+  - mcp__github__add_comment_to_pending_review
+  - mcp__github__add_issue_comment
+  - mcp__github__add_reply_to_pull_request_comment
+  - mcp__github__pull_request_review_write
+  # GitHub MCP - PR・ブランチ操作
+  - mcp__github__create_branch
+  - mcp__github__create_pull_request
+  - mcp__github__merge_pull_request
+  - mcp__github__update_pull_request
+  - mcp__github__update_pull_request_branch
+  - mcp__github__request_copilot_review
+  # GitHub MCP - ファイル操作
+  - mcp__github__create_or_update_file
+  - mcp__github__delete_file
+  - mcp__github__get_file_contents
+  - mcp__github__push_files
+  # GitHub MCP - 読み取り系（コミット・タグ・リリース）
+  - mcp__github__get_commit
+  - mcp__github__get_label
+  - mcp__github__get_latest_release
+  - mcp__github__get_me
+  - mcp__github__get_release_by_tag
+  - mcp__github__get_tag
+  - mcp__github__list_branches
+  - mcp__github__list_commits
+  - mcp__github__list_releases
+  - mcp__github__list_tags
+  # GitHub MCP - Issue・PR 読み取り
+  - mcp__github__issue_read
+  - mcp__github__issue_write
+  - mcp__github__list_issues
+  - mcp__github__list_pull_requests
+  - mcp__github__pull_request_read
+  - mcp__github__sub_issue_write
+  # GitHub MCP - 検索
+  - mcp__github__search_code
+  - mcp__github__search_issues
+  - mcp__github__search_pull_requests
+  - mcp__github__search_repositories
+  - mcp__github__search_users
 model: sonnet
 permissionMode: acceptEdits
 memory: project
