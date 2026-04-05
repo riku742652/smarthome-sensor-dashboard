@@ -99,7 +99,7 @@ variable "schedule_expression" {
 }
 
 variable "create_function_url" {
-  description = "Lambda Function URL を作成するかどうか。HTTP トリガー不要の Lambda（Poller 等）は false に設定する"
+  description = "Lambda Function URL を作成するかどうか。HTTP トリガー不要の Lambda は false に設定する"
   type        = bool
   default     = true
 }

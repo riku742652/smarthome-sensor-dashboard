@@ -144,7 +144,7 @@ moved {
   to   = aws_lambda_function_url.this[0]
 }
 
-# Lambda Function URL（HTTP トリガーが必要な Lambda 向け。Poller には不要）
+# Lambda Function URL（HTTP トリガーが必要な Lambda 向け。不要な場合は create_function_url = false に設定）
 resource "aws_lambda_function_url" "this" {
   count              = var.create_function_url ? 1 : 0
   function_name      = aws_lambda_function.this.function_name

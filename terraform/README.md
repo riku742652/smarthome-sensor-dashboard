@@ -17,19 +17,15 @@ Lambda (API) + Function URL
   ↓
 DynamoDB
   ↑
-Lambda (Poller)
-  Python + boto3
-  EventBridge (1 minute interval)
-  ↓
-Switchbot API
+Raspberry Pi (BLE scan)
+  SwitchBot CO2 Sensor via BLE
 ```
 
 ## Components
 
-- **Lambda (Poller)**: Fetches sensor data from Switchbot API every minute
 - **DynamoDB**: Stores sensor data with 30-day TTL
-- **Lambda (API)**: FastAPI application with Lambda Web Adapter
-- **Lambda Function URL**: HTTPS endpoint for API (no API Gateway needed)
+- **Lambda (API)**: FastAPI application with Lambda Web Adapter. Receives BLE sensor data from Raspberry Pi
+- **Lambda Function URL**: HTTPS endpoint for API (IAM auth for POST, no API Gateway needed)
 - **S3 + CloudFront**: Frontend hosting (future)
 
 ## Prerequisites
@@ -113,12 +109,7 @@ terragrunt init
 terragrunt plan
 terragrunt apply
 
-# 2. Lambda Poller
-cd ../lambda-poller
-terragrunt init
-terragrunt apply
-
-# 3. Lambda API
+# 2. Lambda API
 cd ../lambda-api
 terragrunt init
 terragrunt apply
@@ -127,10 +118,6 @@ terragrunt apply
 ### Step 3: Verify Deployment
 
 ```bash
-# Test Lambda Poller (manual invoke)
-aws lambda invoke --function-name smarthome-sensor-prod-poller response.json
-cat response.json
-
 # Get API Function URL
 FUNCTION_URL=$(aws lambda get-function-url-config --function-name smarthome-sensor-prod-api --query 'FunctionUrl' --output text)
 echo "API URL: ${FUNCTION_URL}"
@@ -165,26 +152,6 @@ python main.py
 
 # Open browser
 open http://localhost:8000/docs
-```
-
-### Lambda Poller
-
-Test locally:
-
-```bash
-cd lambda/poller
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Set environment variables
-export TABLE_NAME="smarthome-sensor-prod-sensor-data"
-export DEVICE_ID="your_device_id"
-export SWITCHBOT_TOKEN="your_token"
-export SWITCHBOT_SECRET="your_secret"
-
-# Run directly
-python -c "from lambda_function import lambda_handler; lambda_handler({}, {})"
 ```
 
 ## CI/CD
@@ -231,13 +198,6 @@ Jobs:
 
 ## Updating
 
-### Update Lambda Poller Code
-
-```bash
-cd terraform/environments/prod/lambda-poller
-terragrunt apply
-```
-
 ### Update Lambda API
 
 ```bash
@@ -264,9 +224,6 @@ cd terraform/environments/prod
 cd lambda-api
 terragrunt destroy
 
-cd ../lambda-poller
-terragrunt destroy
-
 cd ../dynamodb
 terragrunt destroy
 ```
@@ -282,15 +239,6 @@ All components should stay within AWS Free Tier for personal use:
 
 ## Troubleshooting
 
-### Lambda Poller not running
-
-Check EventBridge rule:
-
-```bash
-aws events list-rules --name-prefix smarthome-sensor
-aws events list-targets-by-rule --rule smarthome-sensor-prod-poller-schedule
-```
-
 ### Lambda API errors
 
 View logs:
@@ -304,8 +252,8 @@ aws logs tail /aws/lambda/smarthome-sensor-prod-api --follow
 Check IAM role permissions:
 
 ```bash
-aws iam get-role --role-name smarthome-sensor-prod-poller-role
-aws iam list-attached-role-policies --role-name smarthome-sensor-prod-poller-role
+aws iam get-role --role-name smarthome-sensor-prod-api-role
+aws iam list-attached-role-policies --role-name smarthome-sensor-prod-api-role
 ```
 
 ## Directory Structure
@@ -320,8 +268,8 @@ terraform/
 └── environments/
     └── prod/                  # Production environment
         ├── dynamodb/
-        ├── lambda-poller/
-        └── lambda-api/
+        ├── lambda-api/
+        └── cloudfront/
 ```
 
 ## References
