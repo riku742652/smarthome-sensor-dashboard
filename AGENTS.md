@@ -55,7 +55,7 @@ Switchbot温湿度CO2センサーから値を定期的に取得し、WebUI上で
 
 同期運用:
 - Claude側 (`.claude/agents/*.md`) を正として編集し、Copilot側は `npm run sync:agents` で自動生成する
-- Copilot側 (`.github/agents/*.agent.md`) のモデル指定は現在 `Claude Sonnet 4.6 (copilot)` で統一している
+- Copilot側 (`.github/agents/*.agent.md`) のモデル指定は現在 `claude-sonnet-4.6`（Claude Sonnet 4.6）で統一している
 
 詳細: `docs/SUBAGENTS.md`
 
