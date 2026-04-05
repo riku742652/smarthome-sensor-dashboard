@@ -96,7 +96,7 @@ function formatCopilotFrontmatter({ name, description, tools, argumentHint }) {
     `name: ${name}`,
     `description: ${yamlQuote(description)}`,
     `tools: [${tools.join(', ')}]`,
-    'model: Claude Sonnet 4.6',
+    'model: claude-sonnet-4.6',
   ];
 
   if (argumentHint) {

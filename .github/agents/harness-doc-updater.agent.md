@@ -2,7 +2,7 @@
 name: harness-doc-updater
 description: "Documentation maintenance specialist for Harness Engineering workflow. Use proactively after implementation or when docs need updates. Keeps AGENTS.md, ARCHITECTURE.md and other docs synchronized with codebase changes."
 tools: [read, edit, search]
-model: Claude Sonnet 4.6
+model: claude-sonnet-4.6
 argument-hint: "完了したタスク名と、更新対象ドキュメント範囲を指定する"
 ---
 
