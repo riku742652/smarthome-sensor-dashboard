@@ -60,10 +60,10 @@ Switchbot温湿度CO2センサーから値を定期的に取得し、WebUI上で
 
 ### 利用可能なサブエージェント
 
-1. **harness-researcher** - リサーチ専門（読み取り専用、Haiku）
-2. **harness-planner** - 計画作成専門（Sonnet）
-3. **harness-executor** - 実装専門（Sonnet）
-4. **harness-doc-updater** - ドキュメント更新専門（Haiku）
+1. **harness-researcher** - リサーチ専門（Claude 側モデル: Haiku）
+2. **harness-planner** - 計画作成専門（Claude 側モデル: Sonnet）
+3. **harness-executor** - 実装専門（Claude 側モデル: Sonnet）
+4. **harness-doc-updater** - ドキュメント更新専門（Claude 側モデル: Haiku）
 
 ### 使用例
 ```
