@@ -11,7 +11,6 @@ on:
           - all
           - dynamodb
           - lambda-api
-          - lambda-poller
           - cloudfront
         default: all
       dry_run:
@@ -96,18 +95,6 @@ jobs:
             -auto-approve \
             -target=aws_ecr_repository.this[0]
 
-      - name: Apply Phase 1 - Create ECR repository (lambda-poller)
-        if: (inputs.environment == 'all' || inputs.environment == 'lambda-poller') && inputs.dry_run == false
-        working-directory: terraform/environments/prod/lambda-poller
-        run: |
-          # -target で ECR リポジトリのみを先行作成
-          # Lambda 本体は後続の apply ステップ（Phase 2 または Full lambda-poller）で作成される
-          terragrunt apply \
-            -lock-timeout=5m \
-            -no-color \
-            -auto-approve \
-            -target=aws_ecr_repository.this[0]
-
       # ===== Docker ビルド・ECR プッシュ =====
 
       - name: Build and push Docker image (lambda-api)
@@ -140,36 +127,6 @@ jobs:
           echo "Pushed: ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
           echo "Pushed: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${SHORT_TAG}"
 
-      - name: Build and push Docker image (lambda-poller)
-        if: (inputs.environment == 'all' || inputs.environment == 'lambda-poller') && inputs.dry_run == false
-        env:
-          ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-1.amazonaws.com
-          ECR_REPOSITORY: smarthome-sensor-poller
-          IMAGE_TAG: sha-${{ github.sha }}
-        run: |
-          # "sha-" (4文字) + commit hash 7文字 = 11文字
-          SHORT_TAG=${IMAGE_TAG:0:11}
-
-          # ECR にログイン
-          aws ecr get-login-password --region ap-northeast-1 | \
-            docker login --username AWS --password-stdin "${ECR_REGISTRY}"
-
-          # Docker イメージビルド（linux/amd64 を明示指定: Lambda の実行環境は x86_64）
-          docker build \
-            --platform linux/amd64 \
-            -t "${ECR_REGISTRY}/${ECR_REPOSITORY}:latest" \
-            -t "${ECR_REGISTRY}/${ECR_REPOSITORY}:${SHORT_TAG}" \
-            lambda/poller/
-
-          # ECR へプッシュ（latest: 常に最新イメージを示す）
-          docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
-
-          # ECR へプッシュ（sha-XXXXXXX: git コミットと紐付いたイメージ追跡用）
-          docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${SHORT_TAG}"
-
-          echo "Pushed: ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
-          echo "Pushed: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${SHORT_TAG}"
-
       # ===== Apply フェーズ 2: 全リソース apply =====
 
       - name: Apply Phase 2 - All environments
@@ -190,19 +147,9 @@ jobs:
             -no-color \
             -auto-approve
 
-      # Apply - Full lambda-poller
-      - name: Apply - Full lambda-poller
-        if: inputs.environment == 'lambda-poller' && inputs.dry_run == false
-        working-directory: terraform/environments/prod/lambda-poller
-        run: |
-          terragrunt apply \
-            -lock-timeout=5m \
-            -no-color \
-            -auto-approve
-
-      # lambda-api・lambda-poller 以外の個別 apply（Docker ビルド不要な環境）
+      # lambda-api 以外の個別 apply（Docker ビルド不要な環境）
       - name: Apply (single)
-        if: inputs.environment != 'all' && inputs.environment != 'lambda-api' && inputs.environment != 'lambda-poller' && inputs.dry_run == false
+        if: inputs.environment != 'all' && inputs.environment != 'lambda-api' && inputs.dry_run == false
         working-directory: terraform/environments/prod/${{ inputs.environment }}
         run: |
           terragrunt apply \
@@ -233,13 +180,6 @@ jobs:
                   "${{ inputs.environment }}" == "lambda-api" ]]; then
               echo "### Docker Image (lambda-api)"
               echo "- **Registry**: \`${ECR_REGISTRY}/smarthome-sensor-api\`"
-              echo "- **Image tag**: \`sha-${GITHUB_SHA:0:7}\`"
-            fi
-            if [[ "${{ inputs.dry_run }}" == "false" ]] && \
-               [[ "${{ inputs.environment }}" == "all" || \
-                  "${{ inputs.environment }}" == "lambda-poller" ]]; then
-              echo "### Docker Image (lambda-poller)"
-              echo "- **Registry**: \`${ECR_REGISTRY}/smarthome-sensor-poller\`"
               echo "- **Image tag**: \`sha-${GITHUB_SHA:0:7}\`"
             fi
           } >> $GITHUB_STEP_SUMMARY

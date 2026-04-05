@@ -180,20 +180,6 @@ jobs:
           exit $EXIT_CODE
         working-directory: terraform/environments/prod/lambda-api
 
-      - name: Plan - lambda-poller
-        id: plan_lambda_poller
-        run: |
-          set +e
-          terragrunt plan \
-            -lock-timeout=5m \
-            -no-color \
-            -out=/tmp/tfplan/lambda-poller.tfplan \
-            2>&1 | tee /tmp/tfplan/lambda-poller.txt
-          EXIT_CODE=${PIPESTATUS[0]}
-          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
-          exit $EXIT_CODE
-        working-directory: terraform/environments/prod/lambda-poller
-
       - name: Plan - cloudfront
         id: plan_cloudfront
         run: |
@@ -215,7 +201,7 @@ jobs:
           SUMMARY=""
           OVERALL_EXIT=0
 
-          for ENV in dynamodb lambda-api lambda-poller cloudfront; do
+          for ENV in dynamodb lambda-api cloudfront; do
             FILE="/tmp/tfplan/${ENV}.txt"
             if [ -f "$FILE" ]; then
               # Extract the final "Plan: X to add, Y to change, Z to destroy" line
@@ -230,7 +216,6 @@ jobs:
           # Check if any plan step failed
           if [ "${{ steps.plan_dynamodb.outputs.exit_code }}" != "0" ] || \
              [ "${{ steps.plan_lambda_api.outputs.exit_code }}" != "0" ] || \
-             [ "${{ steps.plan_lambda_poller.outputs.exit_code }}" != "0" ] || \
              [ "${{ steps.plan_cloudfront.outputs.exit_code }}" != "0" ]; then
             OVERALL_EXIT=1
           fi
@@ -436,7 +421,7 @@ jobs:
           TOTAL_CHARS=${#COMMENT}
           CHAR_LIMIT=60000  # Leave 5KB buffer below GitHub's 65536 limit
 
-          for ENV in dynamodb lambda-api lambda-poller cloudfront; do
+          for ENV in dynamodb lambda-api cloudfront; do
             if [ -f "/tmp/tfplan/${ENV}.txt" ]; then
               ENV_PLAN=$(cat "/tmp/tfplan/${ENV}.txt")
               ENV_CHARS=${#ENV_PLAN}
