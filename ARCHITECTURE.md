@@ -132,7 +132,7 @@ src/
 - **状態管理**: React Context + Hooks（必要に応じてZustand）
 
 ### バックエンド/API
-- **Lambda API**: FastAPI + Lambda Web Adapter、DynamoDBからセンサーデータを取得・提供。Raspberry Pi BLE スキャンデータの受け取りにも対応（4エンドポイント）
+- **Lambda API**: FastAPI + Lambda Web Adapter、DynamoDBからセンサーデータを取得・提供。Raspberry Pi BLE スキャンデータの受け取りにも対応（5エンドポイント）
 - **データベース**: DynamoDB（パーティションキー: deviceId、ソートキー: timestamp）
 - **ロギング**: Lambda は CloudWatch 向けの構造化JSONログ
 
