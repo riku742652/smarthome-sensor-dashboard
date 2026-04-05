@@ -215,7 +215,8 @@ Lambda API IAM Function URL 経由でデータを登録します。
 SwitchBot CO2センサー --BLE--> Raspberry Pi --HTTP POST (SigV4署名)--> Lambda API (IAM認証 Function URL) --> DynamoDB
 ```
 
-Raspberry Pi 側のスクリプトは別リポジトリで管理します（関心の分離）。
+Raspberry Pi 側のスクリプトは `smarthome-pi-client` リポジトリで管理します（関心の分離）。
+https://github.com/riku742652/smarthome-pi-client
 `POST /data` のリクエスト/レスポンス仕様が両リポジトリ間の契約です。
 
 **認証アーキテクチャ**:
