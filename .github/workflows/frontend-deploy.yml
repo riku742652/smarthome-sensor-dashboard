@@ -11,9 +11,15 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'vite.config.ts'
+      - 'tsconfig.json'
+      - 'tsconfig.node.json'
       - 'tailwind.config.js'
       - 'postcss.config.js'
       - '.github/workflows/frontend-deploy.yml'
+
+concurrency:
+  group: frontend-deploy
+  cancel-in-progress: true
 
 permissions:
   contents: read
