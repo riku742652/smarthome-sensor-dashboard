@@ -55,15 +55,16 @@ Switchbot温湿度CO2センサーから値を定期的に取得し、WebUI上で
 
 同期運用:
 - Claude側 (`.claude/agents/*.md`) を正として編集し、Copilot側は `npm run sync:agents` で自動生成する
+- Copilot側 (`.github/agents/*.agent.md`) のモデル指定は現在 `claude-sonnet-4.6`（Claude Sonnet 4.6）で統一している
 
 詳細: `docs/SUBAGENTS.md`
 
 ### 利用可能なサブエージェント
 
-1. **harness-researcher** - リサーチ専門（読み取り専用、Haiku）
-2. **harness-planner** - 計画作成専門（Sonnet）
-3. **harness-executor** - 実装専門（Sonnet）
-4. **harness-doc-updater** - ドキュメント更新専門（Haiku）
+1. **harness-researcher** - リサーチ専門（Claude 側モデル: Haiku）
+2. **harness-planner** - 計画作成専門（Claude 側モデル: Sonnet）
+3. **harness-executor** - 実装専門（Claude 側モデル: Sonnet）
+4. **harness-doc-updater** - ドキュメント更新専門（Claude 側モデル: Haiku）
 
 ### 使用例
 ```

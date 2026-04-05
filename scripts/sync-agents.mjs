@@ -4,24 +4,29 @@ import path from 'node:path';
 const rootDir = process.cwd();
 const claudeAgentsDir = path.join(rootDir, '.claude', 'agents');
 const copilotAgentsDir = path.join(rootDir, '.github', 'agents');
+const COPILOT_MODEL_ID = 'claude-sonnet-4.6';
 
 const copilotSettingsByAgent = {
   'harness-researcher': {
     tools: ['read', 'search', 'execute'],
+    model: COPILOT_MODEL_ID,
     argumentHint:
       '何を調査するかを具体的に指定する（対象機能、制約、欲しい成果物）',
   },
   'harness-planner': {
     tools: ['read', 'edit', 'search'],
+    model: COPILOT_MODEL_ID,
     argumentHint:
       '対象タスク名と、元にする research ドキュメントを指定する',
   },
   'harness-executor': {
     tools: ['read', 'edit', 'search', 'execute', 'todo'],
+    model: COPILOT_MODEL_ID,
     argumentHint: '実装対象の plan ファイルと、必要なら PR 番号を指定する',
   },
   'harness-doc-updater': {
     tools: ['read', 'edit', 'search'],
+    model: COPILOT_MODEL_ID,
     argumentHint: '完了したタスク名と、更新対象ドキュメント範囲を指定する',
   },
 };
@@ -90,13 +95,13 @@ function yamlQuote(text) {
   return `"${String(text).replace(/"/g, '\\"')}"`;
 }
 
-function formatCopilotFrontmatter({ name, description, tools, argumentHint }) {
+function formatCopilotFrontmatter({ name, description, tools, model, argumentHint }) {
   const lines = [
     '---',
     `name: ${name}`,
     `description: ${yamlQuote(description)}`,
     `tools: [${tools.join(', ')}]`,
-    'model: gpt-4o',
+    `model: ${yamlQuote(model)}`,
   ];
 
   if (argumentHint) {
@@ -136,6 +141,7 @@ async function main() {
       `${name} の Copilot 向けサブエージェント定義（.claude/agents と同期）`;
     const settings = copilotSettingsByAgent[name] || {
       tools: ['read', 'search'],
+      model: COPILOT_MODEL_ID,
       argumentHint: '',
     };
 
@@ -143,6 +149,7 @@ async function main() {
       name,
       description,
       tools: settings.tools,
+      model: settings.model,
       argumentHint: settings.argumentHint,
     });
 
