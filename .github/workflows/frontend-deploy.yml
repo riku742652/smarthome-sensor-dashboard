@@ -31,6 +31,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TERRAGRUNT_NON_INTERACTIVE: "true"
+      VITE_USE_MOCK_DATA: ${{ vars.VITE_USE_MOCK_DATA || 'false' }}
+      VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
 
     steps:
       - name: Checkout code
@@ -45,7 +47,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate frontend API env configuration
+        run: |
+          echo "VITE_USE_MOCK_DATA=${VITE_USE_MOCK_DATA}"
+          if [ "${VITE_USE_MOCK_DATA}" != "true" ] && [ -z "${VITE_API_BASE_URL}" ]; then
+            echo "::error::VITE_API_BASE_URL is required when VITE_USE_MOCK_DATA is not 'true'. Set repository variable VITE_API_BASE_URL."
+            exit 1
+          fi
+
       - name: Build frontend
+        env:
+          VITE_USE_MOCK_DATA: ${{ env.VITE_USE_MOCK_DATA }}
+          VITE_API_BASE_URL: ${{ env.VITE_API_BASE_URL }}
         run: npm run build
 
       - name: Configure AWS credentials (OIDC)

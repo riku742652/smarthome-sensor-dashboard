@@ -88,6 +88,41 @@ describe('SensorRepository', () => {
       await expect(repository.fetchSensorData(24)).rejects.toThrow()
     })
 
+    it('should throw diagnostic error for HTML response', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        headers: {
+          get: vi.fn().mockReturnValue('text/html; charset=utf-8'),
+        },
+        text: async () => '<!doctype html><html></html>',
+        json: async () => {
+          throw new Error('Unexpected token < in JSON at position 0')
+        },
+      })
+      global.fetch = mockFetch
+
+      await expect(repository.fetchSensorData(24)).rejects.toThrow(
+        'Non-JSON response received'
+      )
+      await expect(repository.fetchSensorData(24)).rejects.toThrow(
+        'VITE_API_BASE_URL'
+      )
+    })
+
+    it('should keep existing mock compatibility when content-type header is missing', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        // headers/text が未実装の既存モック互換
+        json: async () => mockSensorDataResponse,
+      })
+      global.fetch = mockFetch
+
+      const result = await repository.fetchSensorData(24)
+
+      expect(result).toEqual(mockSensorDataResponse)
+    })
+
     it('should throw error when validation fails', async () => {
       const invalidResponse = {
         data: [
