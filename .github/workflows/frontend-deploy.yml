@@ -23,6 +23,8 @@ jobs:
   deploy:
     name: Deploy frontend to S3 + CloudFront
     runs-on: ubuntu-latest
+    env:
+      TERRAGRUNT_NON_INTERACTIVE: "true"
 
     steps:
       - name: Checkout code
