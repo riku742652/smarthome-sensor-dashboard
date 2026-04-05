@@ -119,6 +119,7 @@ sleep 60 && gh pr checks <PR番号> --watch --interval 60
 #### AIレビュアーへの返信ルール
 - **Gemini** へのコメント返信には必ず `@gemini-code-assist` を冒頭に含める
 - **Codex**（chatgpt-codex-connector）へのコメント返信には必ず `@codex` を冒頭に含める
+- **GitHub Copilot** へのコメント返信には必ず `@copilot` を冒頭に含める
 
 #### プロンプト例
 ```
