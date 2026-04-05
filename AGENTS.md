@@ -1,6 +1,6 @@
 # Agent Guide - Smarthome Sensor Dashboard
 
-このファイルは、エージェント（Claude Code）がこのリポジトリで作業する際のナビゲーションマップです。
+このファイルは、エージェント（Claude Code / GitHub Copilot）がこのリポジトリで作業する際のナビゲーションマップです。
 詳細な指示ではなく、必要な情報への**ポインタ**として機能します。
 
 ## プロジェクト概要
@@ -48,6 +48,13 @@ Switchbot温湿度CO2センサーから値を定期的に取得し、WebUI上で
 
 コンテキストウィンドウを効率的に使用するため、このプロジェクトは**4つの専門サブエージェント**を使用します。
 各サブエージェントは特定のフェーズに特化し、詳細な作業を隔離されたコンテキストで実行します。
+
+定義ファイルの配置先:
+- Claude Code: `.claude/agents/*.md`
+- GitHub Copilot: `.github/agents/*.agent.md`
+
+同期運用:
+- Claude側 (`.claude/agents/*.md`) を正として編集し、Copilot側は `npm run sync:agents` で自動生成する
 
 詳細: `docs/SUBAGENTS.md`
 
