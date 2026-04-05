@@ -2,7 +2,7 @@
 name: harness-executor
 description: "Implementation specialist for Harness Engineering workflow. Use proactively when an approved plan exists. Implements code following the detailed plan step-by-step. Saves main context by executing in isolated subagent."
 tools: [read, edit, search, execute, todo]
-model: GPT-5 (copilot)
+model: gpt-4o
 argument-hint: "実装対象の plan ファイルと、必要なら PR 番号を指定する"
 ---
 

@@ -27,7 +27,7 @@ const copilotSettingsByAgent = {
 };
 
 function parseFrontmatter(content) {
-  const match = content.match(/^---\n([\s\S]*?)\n---\n?/);
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
   if (!match) {
     return { frontmatter: {}, body: content.trimStart() };
   }
@@ -36,13 +36,51 @@ function parseFrontmatter(content) {
   const body = content.slice(match[0].length).trimStart();
   const frontmatter = {};
 
-  for (const line of frontmatterText.split('\n')) {
-    const idx = line.indexOf(':');
-    if (idx === -1) continue;
-    const key = line.slice(0, idx).trim();
-    let value = line.slice(idx + 1).trim();
-    value = value.replace(/^"|"$/g, '').replace(/^'|'$/g, '');
-    frontmatter[key] = value;
+  const lines = frontmatterText.split(/\r?\n/);
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    if (/^\s/.test(line)) continue;
+
+    const keyMatch = line.match(/^([A-Za-z0-9_-]+):(.*)$/);
+    if (!keyMatch) continue;
+
+    const [, key, rawValue] = keyMatch;
+    if (key !== 'name' && key !== 'description') continue;
+
+    const trimmedValue = rawValue.trim();
+
+    if (trimmedValue === '|' || trimmedValue === '>') {
+      const blockLines = [];
+      i += 1;
+
+      while (i < lines.length) {
+        const blockLine = lines[i];
+
+        if (blockLine === '') {
+          blockLines.push('');
+          i += 1;
+          continue;
+        }
+
+        const indentMatch = blockLine.match(/^(\s+)(.*)$/);
+        if (!indentMatch) break;
+
+        blockLines.push(indentMatch[2]);
+        i += 1;
+      }
+
+      i -= 1;
+      frontmatter[key] =
+        trimmedValue === '>'
+          ? blockLines.join('\n').replace(/\n+/g, ' ').trim()
+          : blockLines.join('\n').replace(/\s+$/, '');
+      continue;
+    }
+
+    frontmatter[key] = trimmedValue
+      .replace(/^"([\s\S]*)"$/u, '$1')
+      .replace(/^'([\s\S]*)'$/u, '$1');
   }
 
   return { frontmatter, body };
@@ -58,7 +96,7 @@ function formatCopilotFrontmatter({ name, description, tools, argumentHint }) {
     `name: ${name}`,
     `description: ${yamlQuote(description)}`,
     `tools: [${tools.join(', ')}]`,
-    'model: GPT-5 (copilot)',
+    'model: gpt-4o',
   ];
 
   if (argumentHint) {
@@ -78,12 +116,21 @@ async function main() {
     .map((entry) => entry.name)
     .sort();
 
+  const generatedNames = new Set();
+  const expectedFiles = new Set();
+
   for (const fileName of sourceFiles) {
     const srcPath = path.join(claudeAgentsDir, fileName);
     const srcContent = await fs.readFile(srcPath, 'utf8');
     const { frontmatter, body } = parseFrontmatter(srcContent);
 
     const name = frontmatter.name || path.basename(fileName, '.md');
+
+    if (generatedNames.has(name)) {
+      throw new Error(`Duplicate agent name detected: ${name}`);
+    }
+    generatedNames.add(name);
+
     const description =
       frontmatter.description ||
       `${name} の Copilot 向けサブエージェント定義（.claude/agents と同期）`;
@@ -110,7 +157,21 @@ async function main() {
     ].join('\n');
 
     const dstPath = path.join(copilotAgentsDir, `${name}.agent.md`);
+    expectedFiles.add(path.basename(dstPath));
     await fs.writeFile(dstPath, `${copilotFrontmatter}\n${generatedBody}`, 'utf8');
+  }
+
+  // 既に source 側から消えた生成ファイルはクリーンアップする。
+  const copilotEntries = await fs.readdir(copilotAgentsDir, { withFileTypes: true });
+  for (const entry of copilotEntries) {
+    if (!entry.isFile() || !entry.name.endsWith('.agent.md')) continue;
+    if (expectedFiles.has(entry.name)) continue;
+
+    const targetPath = path.join(copilotAgentsDir, entry.name);
+    const fileContent = await fs.readFile(targetPath, 'utf8');
+    if (fileContent.includes('このファイルは scripts/sync-agents.mjs により')) {
+      await fs.unlink(targetPath);
+    }
   }
 
   console.log(
