@@ -38,11 +38,7 @@ export class SensorRepository {
       const url = `${this.baseUrl}${API_ENDPOINTS.data}?hours=${hours}`
       const response = await fetch(url)
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const json = await response.json()
+      const json = await this.parseJsonResponse(response, url)
 
       // Zodでバリデーション
       const validated = SensorDataResponseSchema.parse(json)
@@ -61,11 +57,7 @@ export class SensorRepository {
       const url = `${this.baseUrl}${API_ENDPOINTS.latest}`
       const response = await fetch(url)
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const json = await response.json()
+      const json = await this.parseJsonResponse(response, url)
 
       // Zodでバリデーション
       const validated = SensorDataSchema.parse(json)
@@ -88,6 +80,37 @@ export class SensorRepository {
     return {
       message: 'Unknown error occurred',
     }
+  }
+
+  /**
+   * JSON レスポンスを検証して返却
+   */
+  private async parseJsonResponse(response: Response, url: string): Promise<unknown> {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const contentType = response.headers?.get?.('content-type')
+    if (contentType && !contentType.toLowerCase().includes('application/json')) {
+      let responsePreview = ''
+      if (typeof response.text === 'function') {
+        try {
+          responsePreview = (await response.text()).slice(0, 120)
+        } catch {
+          responsePreview = ''
+        }
+      }
+
+      const previewInfo = responsePreview
+        ? `, responsePreview: ${JSON.stringify(responsePreview)}`
+        : ''
+      throw new Error(
+        `Non-JSON response received. url: ${url}, status: ${response.status}, content-type: ${contentType}${previewInfo}. ` +
+          'API URL may be misconfigured (VITE_API_BASE_URL).'
+      )
+    }
+
+    return response.json()
   }
 }
 

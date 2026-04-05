@@ -108,6 +108,8 @@ npm run build
 # S3にデプロイする場合は、dist/ の内容をアップロードしてください
 ```
 
+運用注意: フロントエンドの GitHub Actions デプロイでは、`VITE_USE_MOCK_DATA` が `true` 以外のとき `VITE_API_BASE_URL` の設定が必須です。未設定の場合はワークフローが fail-fast で停止します。
+
 ### 品質チェック
 
 ```bash
