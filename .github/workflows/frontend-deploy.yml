@@ -32,7 +32,8 @@ jobs:
     env:
       TERRAGRUNT_NON_INTERACTIVE: "true"
       VITE_USE_MOCK_DATA: ${{ vars.VITE_USE_MOCK_DATA || 'false' }}
-      VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+      # CloudFront の /api/* → Lambda OAC ルーティングを使用するため /api に固定
+      VITE_API_BASE_URL: "/api"
 
     steps:
       - name: Checkout code
@@ -50,10 +51,7 @@ jobs:
       - name: Validate frontend API env configuration
         run: |
           echo "VITE_USE_MOCK_DATA=${VITE_USE_MOCK_DATA}"
-          if [ "${VITE_USE_MOCK_DATA}" != "true" ] && [ -z "${VITE_API_BASE_URL}" ]; then
-            echo "::error::VITE_API_BASE_URL is required when VITE_USE_MOCK_DATA is not 'true'. Set repository variable VITE_API_BASE_URL."
-            exit 1
-          fi
+          echo "VITE_API_BASE_URL=${VITE_API_BASE_URL}"
 
       - name: Build frontend
         env:

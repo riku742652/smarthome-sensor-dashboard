@@ -242,3 +242,14 @@ resource "aws_lambda_permission" "allow_eventbridge" {
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.schedule[0].arn
 }
+
+# CloudFront OAC から Lambda IAM Function URL を呼び出すためのリソースポリシー
+# create_iam_function_url = true かつ cloudfront_distribution_arn が設定されている場合のみ作成
+resource "aws_lambda_permission" "allow_cloudfront" {
+  count         = var.create_iam_function_url && var.cloudfront_distribution_arn != "" ? 1 : 0
+  statement_id  = "AllowCloudFrontServicePrincipal"
+  action        = "lambda:InvokeFunctionUrl"
+  function_name = aws_lambda_function.this.function_name
+  principal     = "cloudfront.amazonaws.com"
+  source_arn    = var.cloudfront_distribution_arn
+}

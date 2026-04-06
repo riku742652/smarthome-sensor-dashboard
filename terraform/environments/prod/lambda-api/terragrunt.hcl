@@ -30,9 +30,16 @@ inputs = {
 
   # Lambda Function URL 設定
   # IAM 認証 URL のみ使用（Raspberry Pi は SigV4 で認証）
-  # フロントエンドの GET リクエストは別途対応が必要（CloudFront 経由など）
+  # フロントエンドの GET リクエストは CloudFront OAC 経由でルーティング
   create_function_url     = false
   create_iam_function_url = true
+
+  # CloudFront OAC から Lambda IAM URL を呼び出すためのリソースポリシー
+  # 注意: cloudfront と lambda-api の間に循環依存が生じるため、
+  # cloudfront apply 後に CloudFront Distribution ARN を取得して手動設定する必要がある。
+  # 初回 apply 時は空文字のまま（aws_lambda_permission.allow_cloudfront は作成されない）。
+  # cloudfront_distribution_arn = "<cloudfront-apply-後に設定>"
+  cloudfront_distribution_arn = get_env("CLOUDFRONT_DISTRIBUTION_ARN", "")
 
   dynamodb_table_arn = dependency.dynamodb.outputs.table_arn
 
