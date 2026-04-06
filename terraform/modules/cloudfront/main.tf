@@ -115,7 +115,7 @@ resource "aws_cloudfront_distribution" "frontend" {
   dynamic "ordered_cache_behavior" {
     for_each = var.lambda_function_url != "" ? [1] : []
     content {
-      path_pattern           = "/api/*"
+      path_pattern = "/api/*"
       # フロントエンドは読み取りのみ。書き込み系（POST /data 等）は Raspberry Pi が直接 IAM URL に送信するため不要
       allowed_methods        = ["GET", "HEAD", "OPTIONS"]
       cached_methods         = ["GET", "HEAD"]
