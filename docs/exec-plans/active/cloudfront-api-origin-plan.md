@@ -235,7 +235,7 @@ Raspberry Pi → Lambda IAM Function URL（直接、変更なし）
 
 ### Step 4: Lambda モジュールに CloudFront 向けリソースポリシーを追加
 
-**Purpose**: CloudFront の OAC が Lambda IAM Function URL を呼び出せるよう、`aws_lambda_permission` でサービスプリンシパルを許可する。`source_arn` は省略し、CloudFront サービスプリンシパルのみで許可する（chicken-and-egg 問題を回避するシンプルな方法）。
+**Purpose**: CloudFront の OAC が Lambda IAM Function URL を呼び出せるよう、`aws_lambda_permission` でサービスプリンシパルを許可する。`source_arn` に CloudFront Distribution ARN を指定し、許可対象を当該 Distribution のみに絞る。ARN は環境変数 `CLOUDFRONT_DISTRIBUTION_ARN` で注入するため、循環依存は発生しない。
 
 **Actions**:
 
@@ -334,38 +334,33 @@ Raspberry Pi → Lambda IAM Function URL（直接、変更なし）
    この時点では Lambda リソースポリシーがないため、CloudFront → Lambda は 403 になる
    ```
 
-2. **第2フェーズ: CloudFront ARN を Lambda に伝えて再 apply**
+2. **第2フェーズ: CloudFront ARN を環境変数で Lambda に伝えて再 apply**
 
-   `terraform/environments/prod/lambda-api/terragrunt.hcl` に CloudFront ARN の dependency を追加して再 apply する:
+   循環依存を避けるため、`terraform/environments/prod/lambda-api/terragrunt.hcl` では `get_env("CLOUDFRONT_DISTRIBUTION_ARN", "")` で ARN を受け取る実装になっている。
+   CloudFront apply 後に Distribution ARN を取得し、環境変数で注入して `lambda-api` を再 apply する:
 
-   ```hcl
-   # cloudfront の outputs を参照するための依存関係
-   dependency "cloudfront" {
-     config_path = "../cloudfront"
+   ```bash
+   # CloudFront apply 後に ARN を確認
+   cd terraform/environments/prod/cloudfront
+   terragrunt output cloudfront_distribution_arn
 
-     mock_outputs = {
-       cloudfront_distribution_arn = "arn:aws:cloudfront::123456789012:distribution/mock"
-     }
-     mock_outputs_allowed_terraform_commands = ["plan", "validate"]
-   }
-   ```
-
-   そして `inputs` に追加する:
-   ```hcl
-   cloudfront_distribution_arn = dependency.cloudfront.outputs.cloudfront_distribution_arn
+   # 環境変数で注入して lambda-api を再 apply
+   export CLOUDFRONT_DISTRIBUTION_ARN=arn:aws:cloudfront::<account-id>:distribution/<distribution-id>
+   cd ../lambda-api
+   terragrunt apply
    ```
 
    この再 apply で `aws_lambda_permission.allow_cloudfront` が作成され、CloudFront → Lambda の接続が完成する。
 
-3. CloudFront outputs に `cloudfront_distribution_arn` を追加する必要があるため、`terraform/modules/cloudfront/outputs.tf` を確認して `aws_cloudfront_distribution.frontend.arn` が出力されているか確認する。なければ追加する。
+3. `terraform/modules/cloudfront/outputs.tf` に `cloudfront_distribution_arn` の出力が追加済みであることを確認する（実装済み）。
 
 **Completion Criteria**:
-- [ ] `terraform/environments/prod/lambda-api/terragrunt.hcl` に `dependency "cloudfront"` が追加された
-- [ ] `cloudfront_distribution_arn` が `inputs` に設定された
-- [ ] `terraform/modules/cloudfront/outputs.tf` に `cloudfront_distribution_arn` の出力が確認または追加された
+- [ ] `terraform/environments/prod/lambda-api/terragrunt.hcl` が `get_env("CLOUDFRONT_DISTRIBUTION_ARN", "")` を使う構成になっている
+- [ ] CloudFront apply 後に Distribution ARN を `cloudfront_distribution_arn` output から取得できる
+- [ ] `CLOUDFRONT_DISTRIBUTION_ARN` を環境変数で指定して `lambda-api` を再 apply できる
 
 **Files Affected**:
-- `terraform/environments/prod/lambda-api/terragrunt.hcl` (modified)
+- `terraform/environments/prod/lambda-api/terragrunt.hcl` (確認済み)
 - `terraform/modules/cloudfront/outputs.tf` (確認、必要に応じて modified)
 
 ---

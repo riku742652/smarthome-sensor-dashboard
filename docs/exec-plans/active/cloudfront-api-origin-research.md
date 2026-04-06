@@ -5,17 +5,17 @@
 CloudFront（現在 S3 静的ファイル配信のみ）に Lambda API Function URL をオリジンとして追加し、フロントエンドから `/api/*` パスで Lambda エンドポイントにアクセスできる構成にする。これにより、フロントエンドの `VITE_API_BASE_URL` を `/api` に設定でき、相対パスで API 呼び出しが可能になる。
 
 ### 目標
-- CloudFront 上で `/api/*` パスを Lambda Function URL にルーティング
-- Lambda は IAM 認証 URL → パブリック URL へ変更
+- CloudFront 上で `/api/*` パスを Lambda IAM Function URL にルーティング（OAC 方式）
+- Lambda Function URL は IAM 認証を維持し、CloudFront OAC による SigV4 署名でアクセス可能にする
 - フロントエンドから `/api/health`, `/api/data?hours=24`, `/api/latest` 呼び出し可能に
 - `VITE_API_BASE_URL` を `/api` に設定可能に
 
 ### 成功基準
 - [x] CloudFront に Lambda オリジンが追加される
 - [x] `/api/*` リクエストが Lambda に正しくルーティングされる
-- [x] Lambda には API レスポンス用のパブリック Function URL が存在する
+- [x] Lambda には IAM 認証付き Function URL が存在し、CloudFront OAC から到達できる
 - [x] フロントエンドのビルドで `VITE_API_BASE_URL=/api` が使用可能
-- [x] CORS ヘッダーの重複を避ける（CloudFront 経由だから Lambda は不要の可能性）
+- [x] Raspberry Pi は引き続き Lambda IAM Function URL に直接アクセス可能（変更なし）
 
 ## 現状分析
 
