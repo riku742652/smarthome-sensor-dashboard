@@ -19,6 +19,37 @@ resource "aws_s3_bucket_public_access_block" "frontend" {
   restrict_public_buckets = true
 }
 
+# /api/* → /* パスプレフィックスを除去する CloudFront Function
+resource "aws_cloudfront_function" "api_rewrite" {
+  count   = var.lambda_function_url != "" ? 1 : 0
+  name    = "${var.project_name}-${var.environment}-api-rewrite"
+  runtime = "cloudfront-js-2.0"
+  comment = "/api プレフィックスを除去して Lambda に転送する"
+  publish = true
+
+  code = <<-EOT
+    async function handler(event) {
+      var request = event.request;
+      // /api/* → /* に書き換え（例: /api/data → /data、/api/health → /health）
+      request.uri = request.uri.replace(/^\/api/, '');
+      if (request.uri === '' || request.uri === undefined) {
+        request.uri = '/';
+      }
+      return request;
+    }
+  EOT
+}
+
+# Lambda 用 Origin Access Control（IAM SigV4 署名を CloudFront が代理実行）
+resource "aws_cloudfront_origin_access_control" "lambda_api" {
+  count                             = var.lambda_function_url != "" ? 1 : 0
+  name                              = "${var.project_name}-${var.environment}-lambda-oac"
+  description                       = "OAC for Lambda API origin"
+  origin_access_control_origin_type = "lambda"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+
 # CloudFront Origin Access Control
 resource "aws_cloudfront_origin_access_control" "frontend" {
   name                              = "${var.project_name}-${var.environment}-oac"
@@ -42,6 +73,24 @@ resource "aws_cloudfront_distribution" "frontend" {
     origin_access_control_id = aws_cloudfront_origin_access_control.frontend.id
   }
 
+  # Lambda IAM Function URL オリジン（lambda_function_url が設定されている場合のみ）
+  dynamic "origin" {
+    for_each = var.lambda_function_url != "" ? [1] : []
+    content {
+      # https:// および末尾スラッシュを除去してドメイン名のみ取得
+      domain_name              = trimsuffix(replace(var.lambda_function_url, "https://", ""), "/")
+      origin_id                = "Lambda-API"
+      origin_access_control_id = aws_cloudfront_origin_access_control.lambda_api[0].id
+
+      custom_origin_config {
+        http_port              = 80
+        https_port             = 443
+        origin_protocol_policy = "https-only"
+        origin_ssl_protocols   = ["TLSv1.2"]
+      }
+    }
+  }
+
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD"]
@@ -60,6 +109,40 @@ resource "aws_cloudfront_distribution" "frontend" {
     default_ttl            = var.default_cache_ttl
     max_ttl                = var.max_cache_ttl
     compress               = true
+  }
+
+  # /api/* を Lambda にルーティング（キャッシュなし）
+  dynamic "ordered_cache_behavior" {
+    for_each = var.lambda_function_url != "" ? [1] : []
+    content {
+      path_pattern           = "/api/*"
+      allowed_methods        = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+      cached_methods         = ["GET", "HEAD"]
+      target_origin_id       = "Lambda-API"
+      compress               = true
+      viewer_protocol_policy = "redirect-to-https"
+
+      # API はキャッシュしない
+      default_ttl = 0
+      max_ttl     = 0
+      min_ttl     = 0
+
+      forwarded_values {
+        # クエリ文字列を転送（/data?hours=24 の hours パラメータ保持）
+        query_string = true
+        # Authorization ヘッダーは不要（OAC が自動で SigV4 署名するため）
+        headers = []
+        cookies {
+          forward = "none"
+        }
+      }
+
+      # CloudFront Function でパスプレフィックスを除去
+      function_association {
+        event_type   = "viewer-request"
+        function_arn = aws_cloudfront_function.api_rewrite[0].arn
+      }
+    }
   }
 
   # SPA用カスタムエラーレスポンス（404を index.htmlにリダイレクト）

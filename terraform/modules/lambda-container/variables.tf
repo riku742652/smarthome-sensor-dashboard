@@ -109,3 +109,9 @@ variable "create_iam_function_url" {
   type        = bool
   default     = false
 }
+
+variable "cloudfront_distribution_arn" {
+  description = "CloudFront Distribution ARN。設定された場合、CloudFront から Lambda IAM URL を呼び出すためのリソースポリシーを追加する"
+  type        = string
+  default     = ""
+}

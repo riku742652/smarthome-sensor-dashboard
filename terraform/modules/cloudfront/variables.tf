@@ -31,3 +31,9 @@ variable "aws_region" {
   type        = string
   default     = "ap-northeast-1"
 }
+
+variable "lambda_function_url" {
+  description = "Lambda IAM Function URL（API オリジン用）。空文字の場合は Lambda オリジンを作成しない"
+  type        = string
+  default     = ""
+}

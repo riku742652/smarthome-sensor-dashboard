@@ -22,3 +22,8 @@ output "cloudfront_url" {
   description = "CloudFront distribution URL"
   value       = "https://${aws_cloudfront_distribution.frontend.domain_name}"
 }
+
+output "cloudfront_distribution_arn" {
+  description = "CloudFront distribution ARN（Lambda リソースポリシー用）"
+  value       = aws_cloudfront_distribution.frontend.arn
+}
