@@ -28,7 +28,7 @@ resource "aws_cloudfront_function" "api_rewrite" {
   publish = true
 
   code = <<-EOT
-    async function handler(event) {
+    function handler(event) {
       var request = event.request;
       // /api/* → /* に書き換え（例: /api/data → /data、/api/health → /health）
       request.uri = request.uri.replace(/^\/api/, '');
@@ -122,20 +122,10 @@ resource "aws_cloudfront_distribution" "frontend" {
       compress               = true
       viewer_protocol_policy = "redirect-to-https"
 
-      # API はキャッシュしない
-      default_ttl = 0
-      max_ttl     = 0
-      min_ttl     = 0
-
-      forwarded_values {
-        # クエリ文字列を転送（/data?hours=24 の hours パラメータ保持）
-        query_string = true
-        # Authorization ヘッダーは不要（OAC が自動で SigV4 署名するため）
-        headers = []
-        cookies {
-          forward = "none"
-        }
-      }
+      # API はキャッシュしない（AWS マネージドポリシー: CachingDisabled）
+      cache_policy_id = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
+      # クエリ文字列・ヘッダー（Host 除く）・Cookie をオリジンに転送（AWS マネージドポリシー: AllViewerExceptHostHeader）
+      origin_request_policy_id = "b689b0a8-53d0-40ab-baf2-68738e2966ac"
 
       # CloudFront Function でパスプレフィックスを除去
       function_association {
