@@ -3,15 +3,17 @@ FROM python:3.11-slim
 # Install Lambda Web Adapter
 COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.8.4 /lambda-adapter /opt/extensions/lambda-adapter
 
-# Install uv
-RUN pip install --no-cache-dir uv
+# uv バイナリをイメージからコピー（pip install より高速・軽量）
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # Set working directory
 WORKDIR /app
 
-# Copy dependency files and install into system Python (Lambda runtime uses system interpreter)
+# Copy dependency files
 COPY pyproject.toml uv.lock ./
-RUN UV_SYSTEM_PYTHON=1 uv sync --frozen --no-dev
+
+# 仮想環境を作成して依存関係をインストール
+RUN uv sync --frozen --no-dev
 
 # Copy application code
 COPY . .
@@ -20,5 +22,6 @@ COPY . .
 ENV PORT=8000
 ENV AWS_LWA_INVOKE_MODE=response_stream
 
-# Start FastAPI with uvicorn
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# 仮想環境のバイナリを PATH に追加して uvicorn を直接実行
+ENV PATH="/app/.venv/bin:$PATH"
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
