@@ -9,9 +9,11 @@ RUN pip install --no-cache-dir uv
 # Set working directory
 WORKDIR /app
 
-# Copy dependency files and install into system Python (Lambda runtime uses system interpreter)
+# Copy dependency files
 COPY pyproject.toml uv.lock ./
-RUN UV_SYSTEM_PYTHON=1 uv sync --frozen --no-dev
+
+# 仮想環境を作成して依存関係をインストール
+RUN uv sync --frozen --no-dev
 
 # Copy application code
 COPY . .
@@ -20,5 +22,5 @@ COPY . .
 ENV PORT=8000
 ENV AWS_LWA_INVOKE_MODE=response_stream
 
-# Start FastAPI with uvicorn
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# uv の仮想環境内の Python で uvicorn を起動
+CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
