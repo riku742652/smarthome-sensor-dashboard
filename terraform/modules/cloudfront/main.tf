@@ -31,7 +31,8 @@ resource "aws_cloudfront_function" "api_rewrite" {
     function handler(event) {
       var request = event.request;
       // /api/* → /* に書き換え（例: /api/data → /data、/api/health → /health）
-      request.uri = request.uri.replace(/^\/api/, '');
+      // /api/ または /api のみにマッチ（/api-test 等に誤マッチしないよう末尾を限定）
+      request.uri = request.uri.replace(/^\/api(?=\/|$)/, '');
       if (request.uri === '' || request.uri === undefined) {
         request.uri = '/';
       }
