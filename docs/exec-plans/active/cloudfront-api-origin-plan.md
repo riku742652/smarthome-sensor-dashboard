@@ -164,7 +164,7 @@ Raspberry Pi → Lambda IAM Function URL（直接、変更なし）
      for_each = var.lambda_function_url != "" ? [1] : []
      content {
        path_pattern           = "/api/*"
-       allowed_methods        = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+       allowed_methods        = ["GET", "HEAD", "OPTIONS"]
        cached_methods         = ["GET", "HEAD"]
        target_origin_id       = "Lambda-API"
        compress               = true
