@@ -13,7 +13,7 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 
 # 仮想環境を作成して依存関係をインストール
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev --no-install-project
 
 # Copy application code
 COPY . .

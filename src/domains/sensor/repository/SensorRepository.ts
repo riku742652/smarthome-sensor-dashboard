@@ -4,6 +4,7 @@ import type {
   SensorDataResponse,
   ApiError,
 } from '../types'
+import { SensorNotFoundError, NonJsonResponseError } from '../types'
 import { SensorDataSchema, SensorDataResponseSchema } from './schemas'
 
 /**
@@ -70,8 +71,12 @@ export class SensorRepository {
 
   /**
    * エラーハンドリング
+   * カスタムエラー（SensorNotFoundError, NonJsonResponseError）はそのまま再スロー
    */
-  private handleError(error: unknown): ApiError {
+  private handleError(error: unknown): ApiError | never {
+    if (error instanceof SensorNotFoundError || error instanceof NonJsonResponseError) {
+      throw error
+    }
     if (error instanceof Error) {
       return {
         message: error.message,
@@ -87,6 +92,9 @@ export class SensorRepository {
    */
   private async parseJsonResponse(response: Response, url: string): Promise<unknown> {
     if (!response.ok) {
+      if (response.status === 404) {
+        throw new SensorNotFoundError(`Sensor data not found. url: ${url}`)
+      }
       throw new Error(`HTTP error! status: ${response.status}`)
     }
 
@@ -104,7 +112,7 @@ export class SensorRepository {
       const previewInfo = responsePreview
         ? `, responsePreview: ${JSON.stringify(responsePreview)}`
         : ''
-      throw new Error(
+      throw new NonJsonResponseError(
         `Non-JSON response received. url: ${url}, status: ${response.status}, content-type: ${contentType}${previewInfo}. ` +
           'API URL may be misconfigured (VITE_API_BASE_URL).'
       )

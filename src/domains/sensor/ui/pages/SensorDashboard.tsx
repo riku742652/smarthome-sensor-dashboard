@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { sensorService } from '@domains/sensor/service'
 import type { SensorData } from '@domains/sensor/types'
+import { SensorNotFoundError, NonJsonResponseError } from '@domains/sensor/types'
 import { Loading, ErrorMessage, EmptyState } from '@shared/components'
 import { MetricCard } from '../components/MetricCard'
 import { formatRelativeTime } from '@shared/utils'
@@ -20,10 +21,8 @@ export function SensorDashboard() {
       setLatestData(data)
       setError(null)
     } catch (err) {
-      const message = err instanceof Error ? err.message : ''
-
       // データ未登録時（404）や CloudFront の SPA フォールバック HTML は空状態として扱う
-      if (message.includes('status: 404') || message.includes('Non-JSON response received')) {
+      if (err instanceof SensorNotFoundError || err instanceof NonJsonResponseError) {
         setLatestData(null)
         setError(null)
       } else {

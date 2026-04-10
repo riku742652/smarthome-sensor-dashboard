@@ -29,3 +29,23 @@ export interface ApiError {
   message: string
   statusCode?: number
 }
+
+/**
+ * センサーデータが見つからない場合のエラー（HTTP 404）
+ */
+export class SensorNotFoundError extends Error {
+  constructor(message = 'Sensor data not found') {
+    super(message)
+    this.name = 'SensorNotFoundError'
+  }
+}
+
+/**
+ * API が JSON 以外のレスポンスを返した場合のエラー（SPAフォールバック等）
+ */
+export class NonJsonResponseError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'NonJsonResponseError'
+  }
+}
