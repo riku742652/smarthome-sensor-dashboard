@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { SensorRepository } from './SensorRepository'
+import { SensorNotFoundError } from '../types'
 import { mockSensorData, mockSensorDataResponse } from '@/test/utils/mockData'
 
 
@@ -233,15 +234,25 @@ describe('SensorRepository', () => {
       expect(result).toEqual(mockSensorData)
     })
 
-    it('should throw error when response is not ok', async () => {
+    it('should throw SensorNotFoundError when response is 404', async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 404,
       })
       global.fetch = mockFetch
 
+      await expect(repository.fetchLatestData()).rejects.toThrow(SensorNotFoundError)
+    })
+
+    it('should throw error when response is not ok (non-404)', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+      })
+      global.fetch = mockFetch
+
       await expect(repository.fetchLatestData()).rejects.toThrow(
-        'HTTP error! status: 404'
+        'HTTP error! status: 500'
       )
     })
 

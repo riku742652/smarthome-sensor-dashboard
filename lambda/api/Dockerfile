@@ -13,15 +13,14 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 
 # 仮想環境を作成して依存関係をインストール
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev --no-install-project
 
 # Copy application code
 COPY . .
 
 # Environment variables for Lambda Web Adapter
 ENV PORT=8000
-ENV AWS_LWA_INVOKE_MODE=response_stream
+ENV AWS_LWA_INVOKE_MODE=buffered
 
-# 仮想環境のバイナリを PATH に追加して uvicorn を直接実行
-ENV PATH="/app/.venv/bin:$PATH"
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# ビルド時に作成済みの仮想環境Pythonでuvicornを起動
+CMD ["/app/.venv/bin/python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
