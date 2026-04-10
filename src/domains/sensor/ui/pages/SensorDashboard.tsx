@@ -20,7 +20,15 @@ export function SensorDashboard() {
       setLatestData(data)
       setError(null)
     } catch (err) {
-      setError(err as Error)
+      const message = err instanceof Error ? err.message : ''
+
+      // データ未登録時（404）や CloudFront の SPA フォールバック HTML は空状態として扱う
+      if (message.includes('status: 404') || message.includes('Non-JSON response received')) {
+        setLatestData(null)
+        setError(null)
+      } else {
+        setError(err as Error)
+      }
     } finally {
       setLoading(false)
     }
